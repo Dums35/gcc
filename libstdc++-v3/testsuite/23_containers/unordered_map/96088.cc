@@ -216,6 +216,12 @@ test23()
 
   VERIFY( __gnu_test::counter::count() == 3 );
   VERIFY( __gnu_test::counter::get()._M_increments == 3 );
+
+  um.emplace(*lst.begin());
+  VERIFY( um.size() == 1 );
+
+  VERIFY( __gnu_test::counter::count() == 3 );
+  VERIFY( __gnu_test::counter::get()._M_increments == 3 );
 }
 
 void

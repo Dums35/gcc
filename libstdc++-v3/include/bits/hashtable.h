@@ -902,6 +902,17 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	std::pair<iterator, bool>
 	_M_emplace(true_type __uks, _Args&&... __args);
 
+      template<typename _Arg>
+	std::pair<iterator, bool>
+	_M_emplace(true_type __uks, _Arg&& __arg)
+	{
+	  __alloc_node_gen_t __node_gen(*this);
+	  using __to_value
+	    = __detail::_ConvertToValueType<_ExtractKey, value_type>;
+	  return _M_insert_unique_aux(
+	    __to_value{}(std::forward<_Arg>(__arg)), __node_gen);
+	}
+
       template<typename... _Args>
 	iterator
 	_M_emplace(false_type __uks, _Args&&... __args)
@@ -922,12 +933,39 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	_M_insert_unique(_Kt&&, _Arg&&, const _NodeGenerator&);
 
       template<typename _Kt>
-	static __conditional_t<
-	  __and_<__is_nothrow_invocable<_Hash&, const key_type&>,
-		 __not_<__is_nothrow_invocable<_Hash&, _Kt>>>::value,
-	  key_type, _Kt&&>
+	using __is_comparable_lhs =
+	  __is_invocable<key_equal&, _Kt, const key_type&>;
+
+      template<typename _Kt>
+	using __is_comparable_rhs =
+	  __is_invocable<key_equal&, const key_type&, _Kt>;
+
+      template<typename _Kt>
+	using __is_comparable =
+	  __and_<__is_comparable_lhs<_Kt>, __is_comparable_rhs<_Kt>>;
+
+      template<typename _Kt>
+	using __is_hashable = __is_invocable<_Hash&, _Kt>;
+
+      template<typename _Kt>
+	using __is_nothrow_hashable =
+	  __is_nothrow_invocable<_Hash&, _Kt>;
+
+      template<typename _Kt>
+	static __enable_if_t<
+	  __and_<__is_comparable<_Kt>, __is_hashable<_Kt>>::value,
+	  __conditional_t<__and_<__is_nothrow_hashable<const key_type&>,
+				 __not_<__is_nothrow_hashable<_Kt>>>::value,
+			  key_type, _Kt&&>>
 	_S_forward_key(_Kt&& __k)
 	{ return std::forward<_Kt>(__k); }
+
+      template<typename _Kt>
+	static __enable_if_t<
+	  !__and_<__is_comparable<_Kt>, __is_hashable<_Kt>>::value,
+	  key_type>
+	_S_forward_key(_Kt&& __k)
+	{ return { std::forward<_Kt>(__k) }; }
 
       static const key_type&
       _S_forward_key(const key_type& __k)
