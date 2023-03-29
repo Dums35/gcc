@@ -530,6 +530,92 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	_Rb_tree& _M_t;
       };
 
+#if __cplusplus >= 201103L
+      template<typename _ExKey, typename _Value>
+	struct _ConvertToValueType;
+
+      template<typename _Value>
+	struct _ConvertToValueType<std::_Identity<_Value>, _Value>
+	{
+	  template<typename _Kt>
+	    constexpr _Kt&&
+	    operator()(_Kt&& __k) const noexcept
+	    { return std::forward<_Kt>(__k); }
+	};
+
+      template<typename _Value>
+	struct _ConvertToValueType<std::_Select1st<_Value>, _Value>
+	{
+	  constexpr _Value&&
+	  operator()(_Value&& __x) const noexcept
+	  { return std::move(__x); }
+
+	  constexpr const _Value&
+	  operator()(const _Value& __x) const noexcept
+	  { return __x; }
+
+	  template<typename _Kt, typename _Vt>
+	    constexpr std::pair<_Kt, _Vt>&&
+	    operator()(std::pair<_Kt, _Vt>&& __x) const noexcept
+	    { return std::move(__x); }
+
+	  template<typename _Kt, typename _Vt>
+	    constexpr const std::pair<_Kt, _Vt>&
+	    operator()(const std::pair<_Kt, _Vt>& __x) const noexcept
+	    { return __x; }
+      };
+
+      template<typename _Kt>
+	using __is_comparable_lhs =
+	  __is_invocable<_Compare&, _Kt, const _Key&>;
+
+      template<typename _Kt>
+	using __is_comparable_rhs =
+	  __is_invocable<_Compare&, const _Key&, _Kt>;
+
+      template<typename _Kt>
+	using __is_comparable =
+	  __and_<__is_comparable_lhs<_Kt>, __is_comparable_rhs<_Kt>>;
+
+      template<typename _Kt>
+	using __is_nothrow_comparable_lhs =
+	  __is_nothrow_invocable<_Compare&, _Kt, const _Key&>;
+
+      template<typename _Kt>
+	using __is_nothrow_comparable_rhs =
+	  __is_nothrow_invocable<_Compare&, const _Key&, _Kt>;
+
+      template<typename _Kt>
+	using __is_nothrow_comparable =
+	  __and_<__is_nothrow_comparable_lhs<_Kt>,
+		 __is_nothrow_comparable_rhs<_Kt>>;
+
+      template<typename _Kt>
+	static __enable_if_t<
+	  __and_<__not_<is_same<_Kt, _Key>>, __is_comparable<_Kt>>::value,
+	  __conditional_t<
+	    __and_<__is_nothrow_comparable_lhs<const _Key&>,
+		   __not_<__is_nothrow_comparable<_Kt>>>::value,
+	    _Key, _Kt>>
+	_S_forward_key(_Kt&& __k)
+	{ return std::forward<_Kt>(__k); }
+
+      template<typename _Kt>
+	static __enable_if_t<
+	  __or_<is_same<_Kt, _Key>, __not_<__is_comparable<_Kt>>>::value,
+	  _Key>
+	_S_forward_key(_Kt&& __k)
+	{ return { std::forward<_Kt>(__k) }; }
+
+      static const _Key&
+      _S_forward_key(const _Key& __k)
+      { return __k; }
+
+      static _Key&&
+      _S_forward_key(_Key&& __k)
+      { return std::move(__k); }
+#endif // C++11
+
     public:
       typedef _Key 				key_type;
       typedef _Val 				value_type;
@@ -829,6 +915,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       pair<_Base_ptr, _Base_ptr>
       _M_get_insert_equal_pos(const key_type& __k);
 
+#if __cplusplus >= 201103L
+      template<typename _Kt>
+	pair<_Base_ptr, _Base_ptr>
+	_M_get_insert_unique_pos_tr(const _Kt& __k);
+#endif
+
       pair<_Base_ptr, _Base_ptr>
       _M_get_insert_hint_unique_pos(const_iterator __pos,
 				    const key_type& __k);
@@ -1069,6 +1161,27 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	{
 	  _Alloc_node __an(*this);
 	  return _M_insert_equal_(__pos, std::forward<_Arg>(__x), __an);
+	}
+
+      template<typename _Kt, typename _Arg>
+	std::pair<iterator, bool>
+	_M_emplace_unique_kv(_Kt&&, _Arg&&);
+
+      template<typename _Arg>
+	pair<iterator, bool>
+	_M_emplace_unique_aux(_Arg&& __arg)
+	{
+	  return _M_emplace_unique_kv(
+	    _S_forward_key(_KeyOfValue{}(std::forward<_Arg>(__arg))),
+	    std::forward<_Arg>(__arg));
+	}
+
+      template<typename _Arg>
+	pair<iterator, bool>
+	_M_emplace_unique(_Arg&& __arg)
+	{
+	  using __to_value = _ConvertToValueType<_KeyOfValue, value_type>;
+	  return _M_emplace_unique_aux(__to_value{}(std::forward<_Arg>(__arg)));
 	}
 
       template<typename... _Args>
@@ -1663,6 +1776,20 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  return __it;
 	}
 
+	template<typename _Kt, typename _Arg, typename _Value>
+	  static _Auto_node
+	  _S_build(_Rb_tree& __t,
+		   _Kt&& __k, _Arg&& __arg, std::_Select1st<_Value>)
+	  {
+	    return
+	      { __t, std::forward<_Kt>(__k), std::forward<_Arg>(__arg).second };
+	  }
+
+	template<typename _Kt, typename _Arg, typename _Value>
+	  static _Auto_node
+	  _S_build(_Rb_tree& __t, _Kt&& __k, _Arg&&, std::_Identity<_Value>)
+	  { return { __t, std::forward<_Kt>(__k) }; }
+
 	_Rb_tree& _M_t;
 	_Link_type _M_node;
       };
@@ -2148,6 +2275,39 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       return _Res(__x, __y);
     }
 
+#if __cplusplus >= 201103L
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+	   typename _Compare, typename _Alloc>
+    template<typename _Kt>
+      auto
+      _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+      _M_get_insert_unique_pos_tr(const _Kt& __k)
+      -> pair<_Base_ptr, _Base_ptr>
+      {
+	typedef pair<_Base_ptr, _Base_ptr> _Res;
+	_Link_type __x = _M_begin();
+	_Base_ptr __y = _M_end();
+	bool __comp = true;
+	while (__x != 0)
+	  {
+	    __y = __x;
+	    __comp = _M_impl._M_key_compare(__k, _S_key(__x));
+	    __x = __comp ? _S_left(__x) : _S_right(__x);
+	  }
+	iterator __j = iterator(__y);
+	if (__comp)
+	  {
+	    if (__j == begin())
+	      return _Res(__x, __y);
+	    else
+	      --__j;
+	  }
+	if (_M_impl._M_key_compare(_S_key(__j._M_node), __k))
+	  return _Res(__x, __y);
+	return _Res(__j._M_node, 0);
+      }
+#endif
+
   template<typename _Key, typename _Val, typename _KeyOfValue,
 	   typename _Compare, typename _Alloc>
 #if __cplusplus >= 201103L
@@ -2432,6 +2592,24 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	if (__res.second)
 	  return {__z._M_insert(__res), true};
 	return {iterator(__res.first), false};
+      }
+
+  template<typename _Key, typename _Val, typename _KeyOfValue,
+	   typename _Compare, typename _Alloc>
+    template<typename _Kt, typename _Arg>
+      auto
+      _Rb_tree<_Key, _Val, _KeyOfValue, _Compare, _Alloc>::
+      _M_emplace_unique_kv(_Kt&& __k, _Arg&& __arg)
+      -> pair<iterator, bool>
+      {
+	auto __res = _M_get_insert_unique_pos_tr(__k);
+	if (__res.second)
+	  {
+	    _Auto_node __z = _Auto_node::_S_build(*this,
+	      std::forward<_Kt>(__k), std::forward<_Arg>(__arg), _KeyOfValue{});
+	    return { __z._M_insert(__res), true };
+	  }
+	return { iterator(__res.first), false };
       }
 
   template<typename _Key, typename _Val, typename _KeyOfValue,

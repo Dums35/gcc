@@ -392,6 +392,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _GLIBCXX14_CONSTEXPR
       bool
       operator()(const _Tp& __x, const _Tp& __y) const
+	_GLIBCXX_NOEXCEPT_IF( noexcept(__x > __y) )
       { return __x > __y; }
     };
 
@@ -402,6 +403,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _GLIBCXX14_CONSTEXPR
       bool
       operator()(const _Tp& __x, const _Tp& __y) const
+	_GLIBCXX_NOEXCEPT_IF( noexcept(__x < __y) )
       { return __x < __y; }
     };
 
@@ -1162,6 +1164,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       const _Tp&
       operator()(const _Tp& __x) const
       { return __x; }
+
+#if __cplusplus >= 201103L
+    template<typename _Tp2>
+      _Tp2&&
+      operator()(_Tp2&& __x) const noexcept
+      { return std::forward<_Tp2>(__x); }
+#endif
     };
 
   // Partial specialization, avoids confusing errors in e.g. std::set<const T>.
@@ -1180,15 +1189,28 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       { return __x.first; }
 
 #if __cplusplus >= 201103L
+    private:
       template<typename _Pair2>
-        typename _Pair2::first_type&
-        operator()(_Pair2& __x) const
-        { return __x.first; }
+	struct __1st_type
+	{ using type = typename _Pair2::first_type; };
+
+      template<typename _Tp, typename _Up>
+	struct __1st_type<pair<_Tp, _Up>>
+	{ using type = _Tp; };
+
+      template<typename _Tp, typename _Up>
+	struct __1st_type<const pair<_Tp, _Up>>
+	{ using type = const _Tp; };
 
       template<typename _Pair2>
-        const typename _Pair2::first_type&
-        operator()(const _Pair2& __x) const
-        { return __x.first; }
+	struct __1st_type<_Pair2&>
+	{ using type = typename __1st_type<_Pair2>::type&; };
+
+    public:
+      template<typename _Pair2>
+	typename __1st_type<_Pair2>::type&&
+	operator()(_Pair2&& __x) const noexcept
+	{ return std::forward<_Pair2>(__x).first; }
 #endif
     };
 
