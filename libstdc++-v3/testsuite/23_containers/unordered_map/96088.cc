@@ -265,6 +265,28 @@ test03()
   }
 }
 
+void
+test04()
+{
+  const std::initializer_list<const char*> strlst =
+    { "long_str_for_dynamic_allocating" };
+  __gnu_test::counter::reset();
+  std::unordered_map<std::string, int,
+		     hash_string_view_functor,
+		     std::equal_to<std::string_view>> um;
+  um.insert(strlst.begin(), strlst.end());
+  VERIFY( um.size() == 1 );
+
+  VERIFY( __gnu_test::counter::count() == 3 );
+  VERIFY( __gnu_test::counter::get()._M_increments == 3 );
+
+  um.insert(strlst.begin(), strlst.end());
+  VERIFY( um.size() == 1 );
+
+  VERIFY( __gnu_test::counter::count() == 3 );
+  VERIFY( __gnu_test::counter::get()._M_increments == 3 );
+}
+
 int
 main()
 {
@@ -275,6 +297,8 @@ main()
   test12();
   test21();
   test22();
+  test23();
   test03();
+  test04();
   return 0;
 }

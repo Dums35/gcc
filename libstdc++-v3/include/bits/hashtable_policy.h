@@ -113,6 +113,8 @@ namespace __detail
       { return std::forward<_Tp>(__x).first; }
   };
 
+  struct _Unknown { };
+
   template<typename _ExKey, typename _Value>
     struct _ConvertToValueType;
 
@@ -145,6 +147,22 @@ namespace __detail
 	constexpr const std::pair<_Kt, _Val>&
 	operator()(const std::pair<_Kt, _Val>& __x) const noexcept
 	{ return __x; }
+
+      using __key_type = typename _Select1st::__1st_type<_Value>::type;
+
+      template<typename _Kt>
+	using __is_cons = std::is_constructible<__key_type, _Kt&&>;
+
+      template<typename _Kt>
+	using _IFcons = std::enable_if<__is_cons<_Kt>::value>;
+
+      template<typename _Kt>
+	using _IFconsp = typename _IFcons<_Kt>::type;
+
+      template<typename _Kt, typename = _IFconsp<_Kt>>
+	std::pair<_Kt, _Unknown>
+	operator()(_Kt&& __kt) const
+	{ return { std::forward<_Kt>(__kt), _Unknown{} }; }
     };
 
   template<typename _ExKey>
@@ -153,13 +171,35 @@ namespace __detail
   template<>
     struct _NodeBuilder<_Select1st>
     {
+    private:
+      template<typename _Kt, typename _Arg, typename _NodeGenerator>
+	static auto
+	_S_build_aux(_Kt&& __k, _Arg&& __arg, const _NodeGenerator& __node_gen)
+	-> typename _NodeGenerator::__node_type*
+	{
+	  return __node_gen(std::forward<_Kt>(__k),
+			    std::forward<_Arg>(__arg));
+	}
+
+      template<typename _Kt, typename _NodeGenerator>
+	static auto
+	_S_build_aux(_Kt&& __k, _Unknown, const _NodeGenerator& __node_gen)
+	-> typename _NodeGenerator::__node_type*
+	{
+	  return __node_gen(std::piecewise_construct,
+			    std::forward_as_tuple(std::forward<_Kt>(__k)),
+			    std::tuple<>());
+	}
+
+    public:
       template<typename _Kt, typename _Arg, typename _NodeGenerator>
 	static auto
 	_S_build(_Kt&& __k, _Arg&& __arg, const _NodeGenerator& __node_gen)
 	-> typename _NodeGenerator::__node_ptr
 	{
-	  return __node_gen(std::forward<_Kt>(__k),
-			    std::forward<_Arg>(__arg).second);
+	  return _S_build_aux(std::forward<_Kt>(__k),
+			      std::forward<_Arg>(__arg).second,
+			      __node_gen);
 	}
     };
 
