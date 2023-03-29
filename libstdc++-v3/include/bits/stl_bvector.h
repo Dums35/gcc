@@ -1003,12 +1003,28 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       _GLIBCXX_NODISCARD _GLIBCXX20_CONSTEXPR
       iterator
       end() _GLIBCXX_NOEXCEPT
-      { return this->_M_impl._M_finish; }
+      {
+	if (this->_M_impl._M_finish._M_p < this->_M_impl._M_start._M_p)
+	  __builtin_unreachable();
+
+	return iterator(
+		 this->_M_impl._M_start._M_p
+		 + (this->_M_impl._M_finish._M_p - this->_M_impl._M_start._M_p),
+			this->_M_impl._M_finish._M_offset);
+      }
 
       _GLIBCXX_NODISCARD _GLIBCXX20_CONSTEXPR
       const_iterator
       end() const _GLIBCXX_NOEXCEPT
-      { return this->_M_impl._M_finish; }
+      {
+	if (this->_M_impl._M_finish._M_p < this->_M_impl._M_start._M_p)
+	  __builtin_unreachable();
+
+	return const_iterator(
+		 this->_M_impl._M_start._M_p
+		 + (this->_M_impl._M_finish._M_p - this->_M_impl._M_start._M_p),
+			this->_M_impl._M_finish._M_offset);
+      }
 
       _GLIBCXX_NODISCARD _GLIBCXX20_CONSTEXPR
       reverse_iterator
@@ -1034,22 +1050,22 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       [[__nodiscard__]] _GLIBCXX20_CONSTEXPR
       const_iterator
       cbegin() const noexcept
-      { return const_iterator(this->_M_impl._M_start._M_p, 0); }
+      { return begin(); }
 
       [[__nodiscard__]] _GLIBCXX20_CONSTEXPR
       const_iterator
       cend() const noexcept
-      { return this->_M_impl._M_finish; }
+      { return end(); }
 
       [[__nodiscard__]] _GLIBCXX20_CONSTEXPR
       const_reverse_iterator
       crbegin() const noexcept
-      { return const_reverse_iterator(end()); }
+      { return rbegin(); }
 
       [[__nodiscard__]] _GLIBCXX20_CONSTEXPR
       const_reverse_iterator
       crend() const noexcept
-      { return const_reverse_iterator(begin()); }
+      { return rend(); }
 #endif
 
       _GLIBCXX_NODISCARD _GLIBCXX20_CONSTEXPR
