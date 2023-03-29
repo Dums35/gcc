@@ -37,7 +37,7 @@ namespace __gnu_debug
   template<typename _SafeContainer,
 	   typename _Alloc,
 	   template<typename> class _SafeBase,
-	   bool _IsCxx11AllocatorAware = true>
+	   bool /* _IsCxx11AllocatorAware */ = true>
     class _Safe_container
     : public _SafeBase<_SafeContainer>
     {
@@ -105,19 +105,13 @@ namespace __gnu_debug
 	    return *this;
 	  }
 
-	if (_IsCxx11AllocatorAware)
-	  {
-	    typedef __gnu_cxx::__alloc_traits<_Alloc> _Alloc_traits;
-
-	    bool __xfer_memory = _Alloc_traits::_S_propagate_on_move_assign()
-	      || _M_cont().get_allocator() == __x._M_cont().get_allocator();
-	    if (__xfer_memory)
-	      _Base::_M_swap(__x);
-	    else
-	      this->_M_invalidate_all();
-	  }
-	else
+	typedef __gnu_cxx::__alloc_traits<_Alloc> _Alloc_traits;
+	bool __xfer_memory = _Alloc_traits::_S_propagate_on_move_assign()
+	  || _M_cont().get_allocator() == __x._M_cont().get_allocator();
+	if (__xfer_memory)
 	  _Base::_M_swap(__x);
+	else
+	  this->_M_invalidate_all();
 
 	__x._M_invalidate_all();
 	return *this;
@@ -127,14 +121,10 @@ namespace __gnu_debug
       void
       _M_swap(_Safe_container& __x) noexcept
       {
-	if (_IsCxx11AllocatorAware)
-	  {
-	    typedef __gnu_cxx::__alloc_traits<_Alloc> _Alloc_traits;
-
-	    if (!_Alloc_traits::_S_propagate_on_swap())
-	      __glibcxx_check_equal_allocs(this->_M_cont()._M_base(),
-					   __x._M_cont()._M_base());
-	  }
+	typedef __gnu_cxx::__alloc_traits<_Alloc> _Alloc_traits;
+	if (!_Alloc_traits::_S_propagate_on_swap())
+	  __glibcxx_check_equal_allocs(this->_M_cont()._M_base(),
+				       __x._M_cont()._M_base());
 
 	_Base::_M_swap(__x);
       }
