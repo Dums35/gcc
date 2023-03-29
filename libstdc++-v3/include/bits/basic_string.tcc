@@ -438,7 +438,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       {
 	// _GLIBCXX_RESOLVE_LIB_DEFECTS
 	// 2788. unintentionally require a default constructible allocator
-	const basic_string __s(__k1, __k2, this->get_allocator());
+	const basic_string __s(__k1, __k2, this->_M_get_allocator());
 	const size_type __n1 = __i2 - __i1;
 	return _M_replace(__i1 - begin(), __n1, __s._M_data(),
 			  __s.size());

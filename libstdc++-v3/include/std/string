@@ -63,7 +63,7 @@
 #define __glibcxx_want_to_string
 #include <bits/version.h>
 
-#if __cplusplus >= 201703L && _GLIBCXX_USE_CXX11_ABI
+#if __cplusplus >= 201703L
 #include <bits/memory_resource.h>
 namespace std _GLIBCXX_VISIBILITY(default)
 {

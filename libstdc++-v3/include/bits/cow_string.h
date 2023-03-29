@@ -39,7 +39,6 @@
 namespace std _GLIBCXX_VISIBILITY(default)
 {
 _GLIBCXX_BEGIN_NAMESPACE_VERSION
-
   /**
    *  @class basic_string basic_string.h <string>
    *  @brief  Managing sequences of characters and character-like objects.
@@ -115,18 +114,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     public:
       typedef _Traits					    traits_type;
       typedef typename _Traits::char_type		    value_type;
-      typedef _Alloc					    allocator_type;
-      typedef typename _CharT_alloc_traits::size_type	    size_type;
-      typedef typename _CharT_alloc_traits::difference_type difference_type;
-#if __cplusplus < 201103L
-      typedef typename _CharT_alloc_type::reference	    reference;
-      typedef typename _CharT_alloc_type::const_reference   const_reference;
-#else
-      typedef value_type&				    reference;
-      typedef const value_type&				    const_reference;
-#endif
-      typedef typename _CharT_alloc_traits::pointer	    pointer;
-      typedef typename _CharT_alloc_traits::const_pointer   const_pointer;
+      typedef _CharT_alloc_type				    allocator_type;
+      typedef typename _CharT_alloc_traits::size_type		    size_type;
+      typedef typename _CharT_alloc_traits::difference_type	    difference_type;
+      typedef typename _CharT_alloc_traits::reference		    reference;
+      typedef typename _CharT_alloc_traits::const_reference	    const_reference;
+      typedef typename _CharT_alloc_traits::pointer		    pointer;
+      typedef typename _CharT_alloc_traits::const_pointer	    const_pointer;
       typedef __gnu_cxx::__normal_iterator<pointer, basic_string>  iterator;
       typedef __gnu_cxx::__normal_iterator<const_pointer, basic_string>
 							    const_iterator;
@@ -164,6 +158,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	// Types:
 	typedef typename __gnu_cxx::__alloc_traits<_Alloc>::template
 	  rebind<char>::other _Raw_bytes_alloc;
+	typedef __gnu_cxx::__alloc_traits<_Raw_bytes_alloc>
+	  _Raw_bytes_alloc_traits;
 
 	// (Public) Data members:
 
@@ -306,10 +302,17 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       };
 
       // Use empty-base optimization: http://www.cantrip.org/emptyopt.html
-      struct _Alloc_hider : _Alloc
+      struct _Alloc_hider : allocator_type
       {
 	_Alloc_hider(_CharT* __dat, const _Alloc& __a) _GLIBCXX_NOEXCEPT
-	: _Alloc(__a), _M_p(__dat) { }
+	: allocator_type(__a), _M_p(__dat) { }
+
+#if __cplusplus >= 201103L
+	template<typename _Allocator>
+	  _Alloc_hider(_CharT* __dat, _Allocator&& __a) noexcept
+	  : allocator_type(std::forward<_Allocator>(__a)), _M_p(__dat)
+	  { }
+#endif
 
 	_CharT* _M_p; // The actual data.
       };
@@ -332,6 +335,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _CharT*
       _M_data(_CharT* __p) _GLIBCXX_NOEXCEPT
       { return (_M_dataplus._M_p = __p); }
+
+      allocator_type&
+      _M_get_allocator()
+      { return _M_dataplus; }
+
+      const allocator_type&
+      _M_get_allocator() const
+      { return _M_dataplus; }
 
       _Rep*
       _M_rep() const _GLIBCXX_NOEXCEPT
@@ -535,9 +546,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
        *  @param  __str  Source string.
        */
       basic_string(const basic_string& __str)
-      : _M_dataplus(__str._M_rep()->_M_grab(_Alloc(__str.get_allocator()),
-					    __str.get_allocator()),
-		    __str.get_allocator())
+      : _M_dataplus(__str._M_rep()->_M_grab(_Alloc(__str._M_get_allocator()),
+					    __str._M_get_allocator()),
+		    _CharT_alloc_traits::_S_select_on_copy(__str._M_get_allocator()))
       { }
 
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
@@ -644,13 +655,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       { }
 
       basic_string(const basic_string& __str, const _Alloc& __a)
-      : _M_dataplus(__str._M_rep()->_M_grab(__a, __str.get_allocator()), __a)
+      : _M_dataplus(__str._M_rep()->_M_grab(__a, __str._M_get_allocator()), __a)
       { }
 
       basic_string(basic_string&& __str, const _Alloc& __a)
       : _M_dataplus(__str._M_data(), __a)
       {
-	if (__a == __str.get_allocator())
+	if (__a == __str._M_get_allocator())
 	  {
 #if _GLIBCXX_FULLY_DYNAMIC_STRING == 0
 	    __str._M_data(_S_empty_rep()._M_refdata());
@@ -709,7 +720,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
        *  @brief  Destroy the string instance.
        */
       ~basic_string() _GLIBCXX_NOEXCEPT
-      { _M_rep()->_M_dispose(this->get_allocator()); }
+      { _M_rep()->_M_dispose(this->_M_get_allocator()); }
 
       /**
        *  @brief  Assign the value of @a str to this string.
@@ -751,8 +762,21 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
        */
       basic_string&
       operator=(basic_string&& __str)
-      _GLIBCXX_NOEXCEPT_IF(allocator_traits<_Alloc>::is_always_equal::value)
+      noexcept(_CharT_alloc_traits::_S_nothrow_move())
       {
+	if (_CharT_alloc_traits::_S_propagate_on_move_assign())
+	  {
+	    if (!_CharT_alloc_traits::_S_always_equal()
+		&& _M_get_allocator() != __str._M_get_allocator())
+	      {
+		// Destroy existing storage before replacing allocator.
+		_M_rep()->_M_dispose(this->_M_get_allocator());
+		_M_data(_S_empty_rep()._M_refdata());
+	      }
+
+	    std::__alloc_on_move(_M_get_allocator(), __str._M_get_allocator());
+	  }
+
 	// NB: DR 1204.
 	this->swap(__str);
 	return *this;
@@ -1048,7 +1072,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       {
 	if (_M_rep()->_M_is_shared())
 	  {
-	    _M_rep()->_M_dispose(this->get_allocator());
+	    _M_rep()->_M_dispose(this->_M_get_allocator());
 	    _M_data(_S_empty_rep()._M_refdata());
 	  }
 	else
@@ -2235,8 +2259,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
        *  time.
       */
       void
-      swap(basic_string& __s)
-      _GLIBCXX_NOEXCEPT_IF(allocator_traits<_Alloc>::is_always_equal::value);
+      swap(basic_string& __s) _GLIBCXX_NOEXCEPT;
 
       // String operations:
       /**
@@ -3260,9 +3283,26 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     {
       if (_M_rep() != __str._M_rep())
 	{
+#if __cplusplus >= 201103L
+	  if (_Alloc_traits::_S_propagate_on_copy_assign())
+	    {
+	      if (!_Alloc_traits::_S_always_equal()
+		  && _M_get_allocator() != __str._M_get_allocator())
+		{
+		  // Propagating allocator cannot free existing storage so must
+		  // deallocate it before replacing current allocator.
+		  _M_rep()->_M_dispose(this->_M_get_allocator());
+		  _M_data(_S_empty_rep()._M_refdata());
+		}
+
+	      std::__alloc_on_copy(_M_get_allocator(),
+				   __str._M_get_allocator());
+	    }
+#endif
 	  // XXX MT
-	  const allocator_type __a = this->get_allocator();
-	  _CharT* __tmp = __str._M_rep()->_M_grab(__a, __str.get_allocator());
+	  const allocator_type& __a = this->_M_get_allocator();
+	  _CharT* __tmp =
+	    __str._M_rep()->_M_grab(__a, __str._M_get_allocator());
 	  _M_rep()->_M_dispose(__a);
 	  _M_data(__tmp);
 	}
@@ -3462,7 +3502,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     {
       const size_type __size = sizeof(_Rep_base)
 			       + (this->_M_capacity + 1) * sizeof(_CharT);
-      _Raw_bytes_alloc(__a).deallocate(reinterpret_cast<char*>(this), __size);
+      _Raw_bytes_alloc __raw_a(__a);
+      _Raw_bytes_alloc_traits::deallocate(
+	__raw_a, reinterpret_cast<char*>(this), __size);
     }
 
   template<typename _CharT, typename _Traits, typename _Alloc>
@@ -3494,7 +3536,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       if (__new_size > this->capacity() || _M_rep()->_M_is_shared())
 	{
 	  // Must reallocate.
-	  const allocator_type __a = get_allocator();
+	  const allocator_type& __a = _M_get_allocator();
 	  _Rep* __r = _Rep::_S_create(__new_size, this->capacity(), __a);
 
 	  if (__pos)
@@ -3535,7 +3577,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  __res = __capacity;
 	}
 
-      const allocator_type __a = get_allocator();
+      const allocator_type& __a = _M_get_allocator();
       _CharT* __tmp = _M_rep()->_M_clone(__a, __res - this->size());
       _M_rep()->_M_dispose(__a);
       _M_data(__tmp);
@@ -3544,29 +3586,42 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   template<typename _CharT, typename _Traits, typename _Alloc>
     void
     basic_string<_CharT, _Traits, _Alloc>::
-    swap(basic_string& __s)
-    _GLIBCXX_NOEXCEPT_IF(allocator_traits<_Alloc>::is_always_equal::value)
+    swap(basic_string& __s) _GLIBCXX_NOEXCEPT
     {
+#if __cplusplus >= 201103L
+      __glibcxx_assert(_Alloc_traits::propagate_on_container_swap::value
+		       || _M_get_allocator() == __s._M_get_allocator());
+#endif
+
+      if (this == &__s)
+	return;
+
       if (_M_rep()->_M_is_leaked())
 	_M_rep()->_M_set_sharable();
       if (__s._M_rep()->_M_is_leaked())
 	__s._M_rep()->_M_set_sharable();
-      if (this->get_allocator() == __s.get_allocator())
+#if __cplusplus < 201103L
+      if (this->_M_get_allocator() == __s._M_get_allocator())
 	{
+#endif
 	  _CharT* __tmp = _M_data();
 	  _M_data(__s._M_data());
 	  __s._M_data(__tmp);
+#if __cplusplus < 201103L
 	}
       // The code below can usually be optimized away.
       else
 	{
 	  const basic_string __tmp1(_M_ibegin(), _M_iend(),
-				    __s.get_allocator());
+				    __s._M_get_allocator());
 	  const basic_string __tmp2(__s._M_ibegin(), __s._M_iend(),
-				    this->get_allocator());
+				    this->_M_get_allocator());
 	  *this = __tmp2;
 	  __s = __tmp1;
 	}
+#endif
+
+      _Alloc_traits::_S_on_swap(_M_get_allocator(), __s._M_get_allocator());
     }
 
   template<typename _CharT, typename _Traits, typename _Alloc>
@@ -3633,7 +3688,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
       // NB: Might throw, but no worries about a leak, mate: _Rep()
       // does not throw.
-      void* __place = _Raw_bytes_alloc(__alloc).allocate(__size);
+      _Raw_bytes_alloc __raw_alloc(__alloc);
+      void* __place = _Raw_bytes_alloc_traits::allocate(__raw_alloc, __size);
       _Rep *__p = new (__place) _Rep;
       __p->_M_capacity = __capacity;
       // ABI compatibility - 3.4.x set in _S_create both
@@ -3725,7 +3781,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       if (length() < capacity() || _M_rep()->_M_is_shared())
 	try
 	  {
-	    const allocator_type __a = get_allocator();
+	    const allocator_type& __a = _M_get_allocator();
 	    _CharT* __tmp = _M_rep()->_M_clone(__a);
 	    _M_rep()->_M_dispose(__a);
 	    _M_data(__tmp);
