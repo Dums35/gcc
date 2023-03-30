@@ -308,6 +308,26 @@ test03()
   }
 }
 
+void
+test04()
+{
+  const std::initializer_list<const char*> strlst =
+    { "long_str_for_dynamic_allocating" };
+  __gnu_test::counter::reset();
+  std::map<std::string, int, less_string_view_functor> m;
+  m.insert(strlst.begin(), strlst.end());
+  VERIFY( m.size() == 1 );
+
+  VERIFY( __gnu_test::counter::count() == 2 );
+  VERIFY( __gnu_test::counter::get()._M_increments == 2 );
+
+  m.insert(strlst.begin(), strlst.end());
+  VERIFY( m.size() == 1 );
+
+  VERIFY( __gnu_test::counter::count() == 2 );
+  VERIFY( __gnu_test::counter::get()._M_increments == 2 );
+}
+
 int
 main()
 {

@@ -543,15 +543,16 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    { return std::forward<_Kt>(__k); }
 	};
 
-      template<typename _Value>
-	struct _ConvertToValueType<std::_Select1st<_Value>, _Value>
+      template<typename _Key2, typename _Value>
+	struct _ConvertToValueType<_Select1st<std::pair<_Key2, _Value>>,
+				   std::pair<_Key2, _Value>>
 	{
-	  constexpr _Value&&
-	  operator()(_Value&& __x) const noexcept
+	  constexpr std::pair<_Key2, _Value>&&
+	  operator()(std::pair<_Key2, _Value>&& __x) const noexcept
 	  { return std::move(__x); }
 
-	  constexpr const _Value&
-	  operator()(const _Value& __x) const noexcept
+	  constexpr const std::pair<_Key2, _Value>&
+	  operator()(const std::pair<_Key2, _Value>& __x) const noexcept
 	  { return __x; }
 
 	  template<typename _Kt, typename _Vt>
@@ -563,7 +564,27 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    constexpr const std::pair<_Kt, _Vt>&
 	    operator()(const std::pair<_Kt, _Vt>& __x) const noexcept
 	    { return __x; }
-      };
+
+	  template<typename _Kt>
+	    using __is_cons = std::is_constructible<_Key2, _Kt&&>;
+
+	  template<typename _Kt>
+	    using _IFcons = std::enable_if<__is_cons<_Kt>::value>;
+
+	  template<typename _Kt>
+	    using _IFconsp = typename _IFcons<_Kt>::type;
+
+	  template<typename _Kt, typename = _IFconsp<_Kt>>
+	    std::pair<_Kt, _Value>
+	    operator()(_Kt&& __kt) const
+	    {
+	      return {
+		std::piecewise_construct,
+		std::forward_as_tuple(std::forward<_Kt>(__kt)),
+		std::tuple<>()
+	      };
+	    }
+	};
 
       template<typename _Kt>
 	using __is_comparable_lhs =
