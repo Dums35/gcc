@@ -37,6 +37,10 @@
 #include <bits/stl_iterator_base_types.h>
 #include <debug/debug.h>
 
+#if _GLIBCXX_INLINE_VERSION
+# include <istream>
+#endif
+
 namespace std _GLIBCXX_VISIBILITY(default)
 {
 _GLIBCXX_BEGIN_NAMESPACE_VERSION
@@ -69,6 +73,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       // _M_stream to null when reaching the end, so we need to keep this flag.
       bool		_M_ok;
 
+#if _GLIBCXX_INLINE_VERSION
+      typedef typename istream_type::pos_type pos_type;
+
+      pos_type		_M_pos;
+#endif
+
     public:
       ///  Construct end of input stream iterator.
       _GLIBCXX_CONSTEXPR istream_iterator()
@@ -78,6 +88,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       ///  Construct start of input stream iterator.
       istream_iterator(istream_type& __s)
       : _M_stream(std::__addressof(__s)), _M_ok(true)
+#if _GLIBCXX_INLINE_VERSION
+      , _M_pos(__s.tellg())
+#endif
       { _M_read(); }
 
       _GLIBCXX_CONSTEXPR
@@ -85,6 +98,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _GLIBCXX_NOEXCEPT_IF(is_nothrow_copy_constructible<_Tp>::value)
       : _M_stream(__obj._M_stream), _M_value(__obj._M_value),
         _M_ok(__obj._M_ok)
+#if _GLIBCXX_INLINE_VERSION
+      , _M_pos(__obj._M_pos)
+#endif
       { }
 
 #if __cplusplus > 201703L && __cpp_lib_concepts
@@ -106,6 +122,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	__glibcxx_requires_cond(_M_ok,
 				_M_message(__gnu_debug::__msg_deref_istream)
 				._M_iterator(*this));
+	_M_advance();
 	return _M_value;
       }
 
@@ -139,19 +156,47 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       bool
       _M_equal(const istream_iterator& __x) const _GLIBCXX_NOEXCEPT
       {
+	_M_advance();
+	__x._M_advance();
+
 	// Ideally this would just return _M_stream == __x._M_stream,
 	// but code compiled with old versions never sets _M_stream to null.
 	return (_M_ok == __x._M_ok) && (!_M_ok || _M_stream == __x._M_stream);
       }
 
+      bool
+      _M_advance() const
+      {
+	if (!_M_stream)
+	  return false;
+
+#if _GLIBCXX_INLINE_VERSION
+	_M_stream->seekg(_M_pos);
+#endif
+	return true;
+      }
+
       void
       _M_read()
       {
-        if (_M_stream && !(*_M_stream >> _M_value))
-          {
-            _M_stream = 0;
-            _M_ok = false;
-          }
+	if (_M_advance())
+	  {
+#if _GLIBCXX_INLINE_VERSION
+	    pos_type __pos = _M_pos;
+#endif
+	    if (!(*_M_stream >> _M_value))
+	      {
+		_M_stream = 0;
+		_M_ok = false;
+	      }
+#if _GLIBCXX_INLINE_VERSION
+	    else
+	      {
+		_M_pos = _M_stream->tellg();
+		_M_stream->seekg(__pos);
+	      }
+#endif
+	  }
       }
 
       /// Return true if the iterators refer to the same stream,

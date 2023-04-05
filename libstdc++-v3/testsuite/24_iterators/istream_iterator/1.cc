@@ -71,7 +71,76 @@ void test01()
   VERIFY( iter2 == end );
 }
 
-int main()
+void
+test02()
+{
+  using namespace std;
+
+  istringstream s("1 2 3 4 5");
+  istream_iterator<int> isit(s), isend;
+
+  VERIFY( isit != isend );
+
+  istream_iterator<int> isit2(s);
+  VERIFY( isit2 != isend );
+  VERIFY( *isit2 == 2 );
+}
+
+void
+test03()
+{
+  using namespace std;
+
+  istringstream s("1 2 3 4 5");
+  istream_iterator<int> isit(s), isend;
+
+  VERIFY( *isit == 1 );
+
+  istream_iterator<int> isit2(s);
+  VERIFY( isit2 != isend );
+  VERIFY( *isit2 == 2 );
+}
+
+void
+test04()
+{
+  using namespace std;
+
+  istringstream s("1 2 3 4 5");
+  istream_iterator<int> isit(s), isend;
+  VERIFY( ++isit != isend );
+
+  istream_iterator<int> isit2(s);
+  VERIFY( isit2 != isend );
+  VERIFY( *isit2 == 3 );
+}
+
+void
+test05()
+{
+  using namespace std;
+
+  istringstream s("1 2 3 4 5");
+  istream_iterator<int> isit(s), isend;
+  VERIFY( isit++ != isend );
+
+  istream_iterator<int> isit2(s);
+  VERIFY( isit2 != isend );
+#if _GLIBCXX_INLINE_VERSION
+  VERIFY( *isit2 == 2 );
+#else
+  VERIFY( *isit2 == 3 );
+#endif
+}
+
+
+int
+main()
 {
   test01();
+  test02();
+  test03();
+  test04();
+  test05();
+  return 0;
 }
