@@ -480,36 +480,58 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_assert(__n > 0);
       __glibcxx_requires_cond(!__i._M_at_eof(),
 			      _M_message(__gnu_debug::__msg_inc_istreambuf)
-			      ._M_iterator(__i));
+			      ._M_iterator(__i)
+			      ._M_integer(__n));
 
       typedef istreambuf_iterator<_CharT>		   __is_iterator_type;
       typedef typename __is_iterator_type::traits_type	   traits_type;
       typedef typename __is_iterator_type::streambuf_type  streambuf_type;
       typedef typename traits_type::int_type		   int_type;
+      typedef typename traits_type::off_type		   off_type;
+      typedef typename streambuf_type::pos_type		   pos_type;
       const int_type __eof = traits_type::eof();
+      const pos_type __npos = pos_type(off_type(-1));
 
       streambuf_type* __sb = __i._M_sbuf;
-      while (__n > 0)
+      streamsize __size = __sb->egptr() - __sb->gptr();
+      if (__size >= __n)
+	__sb->__safe_gbump(__n);
+      else
 	{
-	  streamsize __size = __sb->egptr() - __sb->gptr();
-	  if (__size > __n)
+	  // Check for seekoff support.
+	  if (__sb->pubseekoff(0, ios_base::cur, ios_base::in) != __npos)
+	    __sb->pubseekoff(__n, ios_base::cur, ios_base::in);
+	  else
 	    {
-	      __sb->__safe_gbump(__n);
-	      break;
-	    }
+	      _GLIBCXX_DEBUG_ONLY(_Distance __n_orig = __n);
+	      for (;;)
+		{
+		  __sb->__safe_gbump(__size);
+		  __n -= __size;
 
-	  __sb->__safe_gbump(__size);
-	  __n -= __size;
-	  if (traits_type::eq_int_type(__sb->underflow(), __eof))
-	    {
-	      __glibcxx_requires_cond(__n == 0,
-				_M_message(__gnu_debug::__msg_inc_istreambuf)
-				._M_iterator(__i));
-	      break;
+		  if (__n == 0)
+		    break;
+
+		  if (traits_type::eq_int_type(__sb->underflow(), __eof))
+		    {
+		      __i._M_sbuf = 0;
+		      break;
+		    }
+
+		  __size = __sb->egptr() - __sb->gptr();
+		  if (__size > __n)
+		    __size = __n;
+		}
+
+	      _GLIBCXX_DEBUG_ONLY(__n = __n_orig);
 	    }
 	}
 
       __i._M_c = __eof;
+      __glibcxx_requires_cond(!__i._M_at_eof(),
+			      _M_message(__gnu_debug::__msg_inc_istreambuf)
+			      ._M_iterator(__i)
+			      ._M_integer(__n));
     }
 
 /// @} group iterators
