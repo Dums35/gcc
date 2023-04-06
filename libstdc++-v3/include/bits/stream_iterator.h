@@ -62,29 +62,30 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       typedef basic_istream<_CharT, _Traits> istream_type;
 
     private:
-      istream_type*	_M_stream;
-      _Tp		_M_value;
+      mutable istream_type*	_M_stream;
+      mutable _Tp		_M_value;
       // This bool becomes false at end-of-stream. It should be sufficient to
       // check _M_stream != nullptr instead, but historically we did not set
       // _M_stream to null when reaching the end, so we need to keep this flag.
-      bool		_M_ok;
+      mutable bool		_M_ok;
+      mutable bool		_M_value_read;
 
     public:
       ///  Construct end of input stream iterator.
       _GLIBCXX_CONSTEXPR istream_iterator()
       _GLIBCXX_NOEXCEPT_IF(is_nothrow_default_constructible<_Tp>::value)
-      : _M_stream(0), _M_value(), _M_ok(false) {}
+      : _M_stream(0), _M_value(), _M_ok(false), _M_value_read(false) {}
 
       ///  Construct start of input stream iterator.
       istream_iterator(istream_type& __s)
-      : _M_stream(std::__addressof(__s)), _M_ok(true)
-      { _M_read(); }
+      : _M_stream(std::__addressof(__s)), _M_ok(true), _M_value_read(false)
+      { }
 
       _GLIBCXX_CONSTEXPR
       istream_iterator(const istream_iterator& __obj)
       _GLIBCXX_NOEXCEPT_IF(is_nothrow_copy_constructible<_Tp>::value)
       : _M_stream(__obj._M_stream), _M_value(__obj._M_value),
-        _M_ok(__obj._M_ok)
+	_M_ok(__obj._M_ok), _M_value_read(false)
       { }
 
 #if __cplusplus > 201703L && __cpp_lib_concepts
@@ -103,9 +104,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       const _Tp&
       operator*() const _GLIBCXX_NOEXCEPT
       {
+	_M_read();
+
 	__glibcxx_requires_cond(_M_ok,
 				_M_message(__gnu_debug::__msg_deref_istream)
 				._M_iterator(*this));
+
 	return _M_value;
       }
 
@@ -117,21 +121,27 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       istream_iterator&
       operator++()
       {
+	_M_read();
+
 	__glibcxx_requires_cond(_M_ok,
 				_M_message(__gnu_debug::__msg_inc_istream)
 				._M_iterator(*this));
-	_M_read();
+
+	_M_value_read = false;
 	return *this;
       }
 
       istream_iterator
       operator++(int)
       {
+	_M_read();
+
 	__glibcxx_requires_cond(_M_ok,
 				_M_message(__gnu_debug::__msg_inc_istream)
 				._M_iterator(*this));
+
 	istream_iterator __tmp = *this;
-	_M_read();
+	_M_value_read = false;
 	return __tmp;
       }
 
@@ -139,19 +149,27 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       bool
       _M_equal(const istream_iterator& __x) const _GLIBCXX_NOEXCEPT
       {
+	this->_M_read();
+	__x._M_read();
+
 	// Ideally this would just return _M_stream == __x._M_stream,
 	// but code compiled with old versions never sets _M_stream to null.
 	return (_M_ok == __x._M_ok) && (!_M_ok || _M_stream == __x._M_stream);
       }
 
       void
-      _M_read()
+      _M_read() const
       {
-        if (_M_stream && !(*_M_stream >> _M_value))
-          {
-            _M_stream = 0;
-            _M_ok = false;
-          }
+	if (_M_value_read)
+	  return;
+
+	if (_M_stream && !(*_M_stream >> _M_value))
+	  {
+	    _M_stream = 0;
+	    _M_ok = false;
+	  }
+
+	_M_value_read = true;
       }
 
       /// Return true if the iterators refer to the same stream,

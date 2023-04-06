@@ -31,6 +31,9 @@ void test01()
   vector<int> v;
   istringstream s("1 2 3 4 5");
 
+  copy_n(istream_iterator<int>(s), 0, back_inserter(v));
+  VERIFY( v.empty() );
+
   copy_n(istream_iterator<int>(s), 2, back_inserter(v));
   VERIFY( v.size() == 2 );
   VERIFY( v[0] == 1 );
