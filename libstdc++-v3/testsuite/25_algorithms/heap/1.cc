@@ -83,7 +83,7 @@ test02()
 {
   Gt gt;
 
-#ifndef _GLIBCXX_DEBUG
+#ifndef _GLIBCXX_ASSERTIONS
   //const int logN = static_cast<int>(std::log(static_cast<double>(N)) + 0.5);
   const int logN = 3;
 #endif
@@ -95,7 +95,7 @@ test02()
   for (int i = 2; i <= N; ++i)
     {
       std::push_heap(s1, s1 + i, gt);
-#ifndef _GLIBCXX_DEBUG
+#ifndef _GLIBCXX_ASSERTIONS
       VERIFY(gt.count() <= logN);
 #endif
       gt.reset();
@@ -104,7 +104,7 @@ test02()
   for (int i = N; i >= 2; --i)
     {
       std::pop_heap(s1, s1 + i, gt);
-#ifndef _GLIBCXX_DEBUG
+#ifndef _GLIBCXX_ASSERTIONS
       VERIFY(gt.count() <= 2 * logN);
 #endif
       gt.reset();
@@ -118,13 +118,13 @@ test02()
   VERIFY(std::equal(s2, s2 + N, A));
   
   std::make_heap(s2, s2 + N, gt);
-#ifndef _GLIBCXX_DEBUG
+#ifndef _GLIBCXX_ASSERTIONS
   VERIFY(gt.count() <= 3 * N);
 #endif
   gt.reset();
 
   std::sort_heap(s2, s2 + N, gt);
-#ifndef _GLIBCXX_DEBUG
+#ifndef _GLIBCXX_ASSERTIONS
   VERIFY(gt.count() <= N * logN);
 #endif
   

@@ -1581,7 +1581,7 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_function_requires(_EqualOpConcept<
 	    typename iterator_traits<_II1>::value_type,
 	    typename iterator_traits<_II2>::value_type>)
-      __glibcxx_requires_can_increment_range(__first1, __last1, __first2);
+      __glibcxx_requires_can_increment_range_runtime(__first1, __last1, __first2);
 
       return std::__equal_aux(__first1, __last1, __first2);
     }

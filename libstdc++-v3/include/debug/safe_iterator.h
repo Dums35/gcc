@@ -1113,7 +1113,8 @@ namespace __gnu_debug
 				       _Category>& __first,
 		  const _Safe_iterator<_Iterator, _Sequence,
 				       _Category>& __last,
-		  typename _Distance_traits<_Iterator>::__type& __dist)
+		  typename _Distance_traits<_Iterator>::__type& __dist,
+		  bool /* __skip_if_constexpr */)
     { return __first._M_valid_range(__last, __dist); }
 
   template<typename _Iterator, typename _Sequence, typename _Category>
@@ -1121,7 +1122,8 @@ namespace __gnu_debug
     __valid_range(const _Safe_iterator<_Iterator, _Sequence,
 				       _Category>& __first,
 		  const _Safe_iterator<_Iterator, _Sequence,
-				       _Category>& __last)
+				       _Category>& __last,
+		  bool /* __skip_if_constexpr */)
     {
       typename _Distance_traits<_Iterator>::__type __dist;
       return __first._M_valid_range(__last, __dist);

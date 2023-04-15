@@ -30,8 +30,8 @@
 #define _GLIBCXX_DEBUG_HELPER_FUNCTIONS_H 1
 
 #include <bits/move.h>				// for __addressof
-#include <bits/stl_iterator_base_types.h>	// for iterator_traits,
-						// categories and _Iter_base
+#include <bits/stl_iterator_base_types.h>	// for iterator_traits and
+						// categories
 #include <bits/cpp_type_traits.h>		// for __is_integer
 
 #include <bits/stl_pair.h>			// for pair
@@ -237,8 +237,13 @@ namespace __gnu_debug
     _GLIBCXX20_CONSTEXPR
     inline bool
     __valid_range(_InputIterator __first, _InputIterator __last,
-		  typename _Distance_traits<_InputIterator>::__type& __dist)
+		  typename _Distance_traits<_InputIterator>::__type& __dist,
+		  bool __skip_if_constexpr __attribute__ ((__unused__)) = false)
     {
+#ifdef __cpp_lib_is_constant_evaluated
+      if (std::is_constant_evaluated() && __skip_if_constexpr)
+	return true;
+#endif
       typedef typename std::__is_integer<_InputIterator>::__type _Integral;
       return __gnu_debug::__valid_range_aux(__first, __last, __dist,
 					    _Integral());
@@ -248,21 +253,28 @@ namespace __gnu_debug
     bool
     __valid_range(const _Safe_iterator<_Iterator, _Sequence, _Category>&,
 		  const _Safe_iterator<_Iterator, _Sequence, _Category>&,
-		  typename _Distance_traits<_Iterator>::__type&);
+		  typename _Distance_traits<_Iterator>::__type&,
+		  bool __skip_if_constexpr = false);
 
 #if __cplusplus >= 201103L
   template<typename _Iterator,typename _Sequence>
     bool
     __valid_range(const _Safe_local_iterator<_Iterator, _Sequence>&,
 		  const _Safe_local_iterator<_Iterator, _Sequence>&,
-		  typename _Distance_traits<_Iterator>::__type&);
+		  typename _Distance_traits<_Iterator>::__type&,
+		  bool __skip_if_constexpr = false);
 #endif
 
   template<typename _InputIterator>
     _GLIBCXX14_CONSTEXPR
     inline bool
-    __valid_range(_InputIterator __first, _InputIterator __last)
+    __valid_range(_InputIterator __first, _InputIterator __last,
+		  bool __skip_if_constexpr __attribute__ ((__unused__)) = false)
     {
+#ifdef __cpp_lib_is_constant_evaluated
+      if (std::is_constant_evaluated() && __skip_if_constexpr)
+	return true;
+#endif
       typedef typename std::__is_integer<_InputIterator>::__type _Integral;
       return __gnu_debug::__valid_range_aux(__first, __last, _Integral());
     }
@@ -270,13 +282,15 @@ namespace __gnu_debug
   template<typename _Iterator, typename _Sequence, typename _Category>
     bool
     __valid_range(const _Safe_iterator<_Iterator, _Sequence, _Category>&,
-		  const _Safe_iterator<_Iterator, _Sequence, _Category>&);
+		  const _Safe_iterator<_Iterator, _Sequence, _Category>&,
+		  bool __skip_if_constexpr = false);
 
 #if __cplusplus >= 201103L
   template<typename _Iterator, typename _Sequence>
     bool
     __valid_range(const _Safe_local_iterator<_Iterator, _Sequence>&,
-		  const _Safe_local_iterator<_Iterator, _Sequence>&);
+		  const _Safe_local_iterator<_Iterator, _Sequence>&,
+		  bool __skip_if_constexpr = false);
 #endif
 
   // Fallback method, always ok.

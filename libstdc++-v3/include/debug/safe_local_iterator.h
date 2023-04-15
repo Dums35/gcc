@@ -408,13 +408,15 @@ namespace __gnu_debug
     inline bool
     __valid_range(const _Safe_local_iterator<_Iterator, _Sequence>& __first,
 		  const _Safe_local_iterator<_Iterator, _Sequence>& __last,
-		  typename _Distance_traits<_Iterator>::__type& __dist_info)
+		  typename _Distance_traits<_Iterator>::__type& __dist_info,
+		  bool /* __skip_if_constexpr */)
     { return __first._M_valid_range(__last, __dist_info); }
 
   template<typename _Iterator, typename _Sequence>
     inline bool
     __valid_range(const _Safe_local_iterator<_Iterator, _Sequence>& __first,
-		  const _Safe_local_iterator<_Iterator, _Sequence>& __last)
+		  const _Safe_local_iterator<_Iterator, _Sequence>& __last,
+		  bool /* __skip_if_constexpr */)
     {
       typename _Distance_traits<_Iterator>::__type __dist_info;
       return __first._M_valid_range(__last, __dist_info);

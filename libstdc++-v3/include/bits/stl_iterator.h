@@ -3008,7 +3008,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 _GLIBCXX_END_NAMESPACE_VERSION
 } // namespace
 
-#ifdef _GLIBCXX_DEBUG
+#ifdef _GLIBCXX_ASSERTIONS
 # include <debug/stl_iterator.h>
 #endif
 

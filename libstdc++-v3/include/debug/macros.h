@@ -97,12 +97,12 @@ _GLIBCXX_DEBUG_VERIFY(__gnu_debug::__can_advance(_First, _Size),	\
 		      ._M_iterator(_First, #_First)			\
 		      ._M_integer(_Way * _Dist.first, #_Dist))
 
-#define __glibcxx_check_can_increment_range(_First1,_Last1,_First2)	\
+#define __glibcxx_check_can_increment_range(_First1,_Last1,_First2,_SkipIfConstexpr) \
   do									\
   {									\
     typename __gnu_debug::_Distance_traits<__decltype(_First1)>::__type __dist;\
     _GLIBCXX_DEBUG_VERIFY_AT_F(						\
-			__gnu_debug::__valid_range(_First1, _Last1, __dist),\
+			__gnu_debug::__valid_range(_First1, _Last1, __dist, _SkipIfConstexpr), \
 			_M_message(__gnu_debug::__msg_valid_range)	\
 			._M_iterator(_First1, #_First1)			\
 			._M_iterator(_Last1, #_Last1),			\

@@ -48,7 +48,7 @@ void test01()
   ss.str("-1 -2 -3");
   VERIFY( iter == end );
 
-#ifndef _GLIBCXX_DEBUG
+#ifndef _GLIBCXX_ASSERTIONS
   // This is undefined, so aborts under debug mode.
   // Without debug mode, it should not extract anything from the stream,
   // and the iterator should remain at end-of-stream.
