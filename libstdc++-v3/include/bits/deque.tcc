@@ -489,6 +489,19 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       _M_push_back_aux(const value_type& __t)
 #endif
       {
+	if (empty())
+	  {
+	    // Move iterators to point to the current node begin.
+	    this->_M_impl._M_start._M_cur = this->_M_impl._M_start._M_first;
+	    this->_M_impl._M_finish._M_cur = this->_M_impl._M_finish._M_first;
+#if __cplusplus >= 201103L
+	    emplace_back(std::forward<_Args>(__args)...);
+#else
+	    push_back(__t);
+#endif
+	    return;
+	  }
+
 	if (size() == max_size())
 	  __throw_length_error(
 	      __N("cannot create std::deque larger than max_size()"));
@@ -528,6 +541,19 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       _M_push_front_aux(const value_type& __t)
 #endif
       {
+	if (empty())
+	  {
+	    // Move iterators to point to the current node end.
+	    this->_M_impl._M_finish._M_cur = this->_M_impl._M_finish._M_last - 1;
+	    this->_M_impl._M_start._M_cur = this->_M_impl._M_start._M_last - 1;
+#if __cplusplus >= 201103L
+	    emplace_front(std::forward<_Args>(__args)...);
+#else
+	    push_front(__t);
+#endif
+	    return;
+	  }
+
 	if (size() == max_size())
 	  __throw_length_error(
 	      __N("cannot create std::deque larger than max_size()"));
