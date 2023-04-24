@@ -165,9 +165,13 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        : _M_cur(__x._M_cur), _M_first(__x._M_first),
 	 _M_last(__x._M_last), _M_node(__x._M_node) { }
 
+# if _GLIBCXX_INLINE_VERSION
+      _Deque_iterator(const _Deque_iterator&) = default;
+# else
       _Deque_iterator(const _Deque_iterator& __x) noexcept
        : _M_cur(__x._M_cur), _M_first(__x._M_first),
 	 _M_last(__x._M_last), _M_node(__x._M_node) { }
+# endif
 
       _Deque_iterator& operator=(const _Deque_iterator&) = default;
 #endif
