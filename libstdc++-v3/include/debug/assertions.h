@@ -35,6 +35,8 @@
 # define __glibcxx_requires_non_empty_range(_First,_Last)
 # define __glibcxx_requires_nonempty()
 # define __glibcxx_requires_subscript(_N)
+# define __glibcxx_requires_string(_String)
+# define __glibcxx_requires_string_len(_String,_Len)
 #else
 
 // Verify that [_First, _Last) forms a non-empty iterator range.
@@ -45,6 +47,22 @@
 // Verify that the container is nonempty
 # define __glibcxx_requires_nonempty()		\
   __glibcxx_assert(!this->empty())
+# ifdef _GLIBCXX_DEBUG_PEDANTIC
+#  if __cplusplus < 201103L
+#   define __glibcxx_requires_string(_String)	\
+  __glibcxx_assert(_String != 0)
+#   define __glibcxx_requires_string_len(_String,_Len)	\
+  __glibcxx_assert(_String != 0 || _Len == 0)
+#  else
+#   define __glibcxx_requires_string(_String)	\
+  __glibcxx_assert(_String != nullptr)
+#   define __glibcxx_requires_string_len(_String,_Len)	\
+  __glibcxx_assert(_String != nullptr || _Len == 0)
+#  endif // C++11
+# else
+#  define __glibcxx_requires_string(_String)
+#  define __glibcxx_requires_string_len(_String,_Len)
+# endif // _GLIBCXX_DEBUG_PEDANTIC
 #endif
 
 #if defined _GLIBCXX_DEBUG && _GLIBCXX_HOSTED
