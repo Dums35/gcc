@@ -953,13 +953,13 @@ class StdDequePrinter(printer_base):
     """Print a std::deque."""
 
     class _iter(Iterator):
-        def __init__(self, node, start, end, last, buffer_size):
-            self._node = node
-            self._p = start
-            self._end = end
-            self._last = last
-            self._buffer_size = buffer_size
-            self._count = 0
+        def __init__(self, node, first, start, last, buffer_size):
+            self.node = node
+            self.p = start
+            self.end = first + buffer_size
+            self.last = last
+            self.buffer_size = buffer_size
+            self.count = 0
 
         def __iter__(self):
             return self
@@ -997,7 +997,7 @@ class StdDequePrinter(printer_base):
         end = self._val['_M_impl']['_M_finish']
 
         delta_n = end['_M_node'] - start['_M_node'] - 1
-        delta_s = start['_M_last'] - start['_M_cur']
+        delta_s = self.buffer_size - (start['_M_cur'] - start['_M_first'])
         delta_e = end['_M_cur'] - end['_M_first']
 
         size = self._buffer_size * delta_n + delta_s + delta_e
@@ -1005,10 +1005,10 @@ class StdDequePrinter(printer_base):
         return '%s with %s' % (self._typename, num_elements(long(size)))
 
     def children(self):
-        start = self._val['_M_impl']['_M_start']
-        end = self._val['_M_impl']['_M_finish']
-        return self._iter(start['_M_node'], start['_M_cur'], start['_M_last'],
-                          end['_M_cur'], self._buffer_size)
+        start = self.val['_M_impl']['_M_start']
+        end = self.val['_M_impl']['_M_finish']
+        return self._iter(start['_M_node'], start['_M_first'], start['_M_cur'],
+                          end['_M_cur'], self.buffer_size)
 
     def display_hint(self):
         return 'array'

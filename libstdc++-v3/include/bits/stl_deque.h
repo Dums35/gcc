@@ -128,7 +128,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       typedef __ptr_rebind<_Ptr, _Elt_pointer>		   _Map_pointer;
 #endif
 
-      static size_t _S_buffer_size() _GLIBCXX_NOEXCEPT
+      static _GLIBCXX_CONSTEXPR size_t
+      _S_buffer_size() _GLIBCXX_NOEXCEPT
       { return __deque_buf_size(sizeof(_Tp)); }
 
       typedef std::random_access_iterator_tag	iterator_category;
@@ -141,21 +142,33 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       _Elt_pointer _M_cur;
       _Elt_pointer _M_first;
-      _Elt_pointer _M_last;
+#if !_GLIBCXX_INLINE_VERSION
+      _Elt_pointer _M_last_ptr;
+#endif
       _Map_pointer _M_node;
 
       _Deque_iterator(_Elt_pointer __x, _Map_pointer __y) _GLIBCXX_NOEXCEPT
       : _M_cur(__x), _M_first(*__y),
-	_M_last(*__y + _S_buffer_size()), _M_node(__y) { }
+#if !_GLIBCXX_INLINE_VERSION
+	_M_last_ptr(*__y + _S_buffer_size()),
+#endif
+	_M_node(__y) { }
 
       _Deque_iterator() _GLIBCXX_NOEXCEPT
-      : _M_cur(), _M_first(), _M_last(), _M_node() { }
+      : _M_cur(), _M_first(),
+#if !_GLIBCXX_INLINE_VERSION
+	_M_last_ptr(),
+#endif
+	_M_node() { }
 
 #if __cplusplus < 201103L
       // Conversion from iterator to const_iterator.
       _Deque_iterator(const iterator& __x) _GLIBCXX_NOEXCEPT
       : _M_cur(__x._M_cur), _M_first(__x._M_first),
-	_M_last(__x._M_last), _M_node(__x._M_node) { }
+# if !_GLIBCXX_INLINE_VERSION
+	_M_last_ptr(__x._M_last_ptr),
+# endif
+	_M_node(__x._M_node) { }
 #else
       // Conversion from iterator to const_iterator.
       template<typename _Iter,
@@ -163,18 +176,25 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 				   is_same<_Iter, iterator>>>
        _Deque_iterator(const _Iter& __x) noexcept
        : _M_cur(__x._M_cur), _M_first(__x._M_first),
-	 _M_last(__x._M_last), _M_node(__x._M_node) { }
+# if !_GLIBCXX_INLINE_VERSION
+	 _M_last_ptr(__x._M_last_ptr),
+# endif
+	 _M_node(__x._M_node) { }
 
 # if _GLIBCXX_INLINE_VERSION
       _Deque_iterator(const _Deque_iterator&) = default;
 # else
       _Deque_iterator(const _Deque_iterator& __x) noexcept
-       : _M_cur(__x._M_cur), _M_first(__x._M_first),
-	 _M_last(__x._M_last), _M_node(__x._M_node) { }
+      : _M_cur(__x._M_cur), _M_first(__x._M_first),
+	_M_last_ptr(__x._M_last_ptr), _M_node(__x._M_node) { }
 # endif
 
       _Deque_iterator& operator=(const _Deque_iterator&) = default;
-#endif
+#endif // C++11
+
+      _GLIBCXX_CONSTEXPR _Elt_pointer
+      _M_last() const _GLIBCXX_NOEXCEPT
+      { return _M_first + difference_type(_S_buffer_size()); }
 
       iterator
       _M_const_cast() const _GLIBCXX_NOEXCEPT
@@ -194,7 +214,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       operator++() _GLIBCXX_NOEXCEPT
       {
 	++_M_cur;
-	if (_M_cur == _M_last)
+	if (_M_cur == _M_last())
 	  {
 	    _M_set_node(_M_node + 1);
 	    _M_cur = _M_first;
@@ -216,7 +236,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	if (_M_cur == _M_first)
 	  {
 	    _M_set_node(_M_node - 1);
-	    _M_cur = _M_last;
+	    _M_cur = _M_last();
 	  }
 	--_M_cur;
 	return *this;
@@ -268,7 +288,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       {
 	_M_node = __new_node;
 	_M_first = *__new_node;
-	_M_last = _M_first + difference_type(_S_buffer_size());
+#if !_GLIBCXX_INLINE_VERSION
+	_M_last_ptr = _M_last();
+#endif
       }
 
       _GLIBCXX_NODISCARD
@@ -379,7 +401,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	return difference_type(_S_buffer_size())
 	  * (__x._M_node - __y._M_node - bool(__x._M_node))
 	  + (__x._M_cur - __x._M_first)
-	  + (__y._M_last - __y._M_cur);
+	  + (__y._M_last() - __y._M_cur);
       }
 
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
@@ -399,7 +421,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	  return difference_type(_S_buffer_size())
 	    * (__x._M_node - __y._M_node - bool(__x._M_node))
 	    + (__x._M_cur - __x._M_first)
-	    + (__y._M_last - __y._M_cur);
+	    + (__y._M_last() - __y._M_cur);
 	}
 
       _GLIBCXX_NODISCARD
@@ -843,8 +865,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       typedef _Alloc					allocator_type;
 
     private:
-      static size_t _S_buffer_size() _GLIBCXX_NOEXCEPT
-      { return __deque_buf_size(sizeof(_Tp)); }
+      static _GLIBCXX_CONSTEXPR size_t
+      _S_buffer_size() _GLIBCXX_NOEXCEPT
+      { return iterator::_S_buffer_size(); }
 
       using _Base::_S_allow_null_map;
 
@@ -1588,7 +1611,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	  _M_initialize_map(0);
 
 	if (this->_M_impl._M_finish._M_cur
-	    != this->_M_impl._M_finish._M_last - 1)
+	    != this->_M_impl._M_finish._M_last() - 1)
 	  {
 	    _Alloc_traits::construct(this->_M_impl,
 				     this->_M_impl._M_finish._M_cur, __x);
@@ -1625,7 +1648,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       {
 	__glibcxx_requires_nonempty();
 	if (this->_M_impl._M_start._M_cur
-	    != this->_M_impl._M_start._M_last - 1)
+	    != this->_M_impl._M_start._M_last() - 1)
 	  {
 	    _Alloc_traits::destroy(_M_get_Tp_allocator(),
 				   this->_M_impl._M_start._M_cur);
@@ -2191,7 +2214,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       iterator
       _M_reserve_elements_at_back(size_type __n)
       {
-	const size_type __vacancies = (this->_M_impl._M_finish._M_last
+	const size_type __vacancies = (this->_M_impl._M_finish._M_last()
 				       - this->_M_impl._M_finish._M_cur) - 1;
 	if (__n > __vacancies)
 	  _M_new_elements_at_back(__n - __vacancies);

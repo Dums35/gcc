@@ -171,7 +171,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	  _M_initialize_map(0);
 
 	if (this->_M_impl._M_finish._M_cur
-	    != this->_M_impl._M_finish._M_last - 1)
+	    != this->_M_impl._M_finish._M_last() - 1)
 	  {
 	    _Alloc_traits::construct(this->_M_impl,
 				     this->_M_impl._M_finish._M_cur,
@@ -394,7 +394,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	return false;
 
       const difference_type __back_capacity
-	= (this->_M_impl._M_finish._M_last - this->_M_impl._M_finish._M_cur);
+	= (this->_M_impl._M_finish._M_last() - this->_M_impl._M_finish._M_cur);
       if (__front_capacity + __back_capacity < _S_buffer_size())
 	return false;
 
@@ -490,7 +490,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	  }
       }
 
-  // Called only if _M_impl._M_finish._M_cur == _M_impl._M_finish._M_last - 1.
+  // Called only if _M_impl._M_finish._M_cur == _M_impl._M_finish._M_last() - 1.
   template<typename _Tp, typename _Alloc>
 #if __cplusplus >= 201103L
     template<typename... _Args>
@@ -558,8 +558,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	if (empty())
 	  {
 	    // Move iterators to point to the current node end.
-	    this->_M_impl._M_finish._M_cur = this->_M_impl._M_finish._M_last - 1;
-	    this->_M_impl._M_start._M_cur = this->_M_impl._M_start._M_last - 1;
+	    this->_M_impl._M_finish._M_cur = this->_M_impl._M_finish._M_last() - 1;
+	    this->_M_impl._M_start._M_cur = this->_M_impl._M_start._M_last() - 1;
 #if __cplusplus >= 201103L
 	    emplace_front(std::forward<_Args>(__args)...);
 #else
@@ -578,7 +578,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	  {
 	    this->_M_impl._M_start._M_set_node(this->_M_impl._M_start._M_node
 					       - 1);
-	    this->_M_impl._M_start._M_cur = this->_M_impl._M_start._M_last - 1;
+	    this->_M_impl._M_start._M_cur = this->_M_impl._M_start._M_last() - 1;
 #if __cplusplus >= 201103L
 	    _Alloc_traits::construct(this->_M_impl,
 				     this->_M_impl._M_start._M_cur,
@@ -602,15 +602,15 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
     {
       _M_deallocate_node(this->_M_impl._M_finish._M_first);
       this->_M_impl._M_finish._M_set_node(this->_M_impl._M_finish._M_node - 1);
-      this->_M_impl._M_finish._M_cur = this->_M_impl._M_finish._M_last - 1;
+      this->_M_impl._M_finish._M_cur = this->_M_impl._M_finish._M_last() - 1;
       _Alloc_traits::destroy(_M_get_Tp_allocator(),
 			     this->_M_impl._M_finish._M_cur);
     }
 
-  // Called only if _M_impl._M_start._M_cur == _M_impl._M_start._M_last - 1.
+  // Called only if _M_impl._M_start._M_cur == _M_impl._M_start._M_last() - 1.
   // Note that if the deque has at least one element (a precondition for this
   // member function), and if
-  //   _M_impl._M_start._M_cur == _M_impl._M_start._M_last,
+  //   _M_impl._M_start._M_cur == _M_impl._M_start._M_last(),
   // then the deque must have at least two nodes.
   template <typename _Tp, typename _Alloc>
     void deque<_Tp, _Alloc>::
@@ -922,7 +922,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
        if (__first._M_node != __last._M_node)
 	 {
-	   std::_Destroy(__first._M_cur, __first._M_last,
+	   std::_Destroy(__first._M_cur, __first._M_last(),
 			 _M_get_Tp_allocator());
 	   std::_Destroy(__last._M_first, __last._M_cur,
 			 _M_get_Tp_allocator());
@@ -1041,7 +1041,7 @@ _GLIBCXX_END_NAMESPACE_CONTAINER
       typedef _GLIBCXX_STD_C::_Deque_iterator<_Tp, _Tp&, _Tp*> _Iter;
       if (__first._M_node != __last._M_node)
 	{
-	  std::__fill_a1(__first._M_cur, __first._M_last, __value);
+	  std::__fill_a1(__first._M_cur, __first._M_last(), __value);
 
 	  for (typename _Iter::_Map_pointer __node = __first._M_node + 1;
 	       __node < __last._M_node; ++__node)
@@ -1064,7 +1064,7 @@ _GLIBCXX_END_NAMESPACE_CONTAINER
       if (__first._M_node != __last._M_node)
 	{
 	  __result
-	    = std::__copy_move_a1<_IsMove>(__first._M_cur, __first._M_last,
+	    = std::__copy_move_a1<_IsMove>(__first._M_cur, __first._M_last(),
 					   __result);
 
 	  for (typename _Iter::_Map_pointer __node = __first._M_node + 1;
@@ -1112,7 +1112,7 @@ _GLIBCXX_END_NAMESPACE_CONTAINER
       while (__len > 0)
 	{
 	  const difference_type __clen
-	    = std::min(__len, __result._M_last - __result._M_cur);
+	    = std::min(__len, __result._M_last() - __result._M_cur);
 	  std::__copy_move_a1<_IsMove>(__first, __first + __clen,
 				       __result._M_cur);
 
@@ -1195,7 +1195,7 @@ _GLIBCXX_END_NAMESPACE_CONTAINER
 		*__node, *__node + _Iter::_S_buffer_size(), __result);
 
 	  return std::__copy_move_backward_a1<_IsMove>(
-			__first._M_cur, __first._M_last, __result);
+			__first._M_cur, __first._M_last(), __result);
 	}
 
       return std::__copy_move_backward_a1<_IsMove>(
@@ -1262,10 +1262,10 @@ _GLIBCXX_END_NAMESPACE_CONTAINER
       typedef _GLIBCXX_STD_C::_Deque_iterator<_Tp, _Ref, _Ptr> _Iter;
       if (__first1._M_node != __last1._M_node)
 	{
-	  if (!std::__equal_aux1(__first1._M_cur, __first1._M_last, __first2))
+	  if (!std::__equal_aux1(__first1._M_cur, __first1._M_last(), __first2))
 	    return false;
 
-	  __first2 += __first1._M_last - __first1._M_cur;
+	  __first2 += __first1._M_last() - __first1._M_cur;
 	  for (typename _Iter::_Map_pointer __node = __first1._M_node + 1;
 	       __node != __last1._M_node;
 	       __first2 += _Iter::_S_buffer_size(), ++__node)
@@ -1308,7 +1308,7 @@ _GLIBCXX_END_NAMESPACE_CONTAINER
       while (__len > 0)
 	{
 	  const difference_type __clen
-	    = std::min(__len, __first2._M_last - __first2._M_cur);
+	    = std::min(__len, __first2._M_last() - __first2._M_cur);
 	  if (!std::__equal_aux1(__first1, __first1 + __clen, __first2._M_cur))
 	    return false;
 
