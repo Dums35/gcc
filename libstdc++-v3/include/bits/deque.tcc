@@ -388,6 +388,16 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
     deque<_Tp, _Alloc>::
     _M_shrink_to_fit()
     {
+      if (!_M_valid_map())
+	return false;
+
+      if (_Base::_S_recycle_nodes)
+	if (typename _Base::_Ptr& __cached = this->_M_cached_node())
+	  {
+	    _M_deallocate_node(__cached);
+	    __cached = typename _Base::_Ptr();
+	  }
+
       const difference_type __front_capacity
 	= (this->_M_impl._M_start._M_cur - this->_M_impl._M_start._M_first);
       if (__front_capacity == 0)
@@ -600,7 +610,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
     void deque<_Tp, _Alloc>::
     _M_pop_back_aux()
     {
-      _M_deallocate_node(this->_M_impl._M_finish._M_first);
+      this->_M_dispose_node(this->_M_impl._M_finish._M_first);
       this->_M_impl._M_finish._M_set_node(this->_M_impl._M_finish._M_node - 1);
       this->_M_impl._M_finish._M_cur = this->_M_impl._M_finish._M_last() - 1;
       _Alloc_traits::destroy(_M_get_Tp_allocator(),
@@ -618,7 +628,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
     {
       _Alloc_traits::destroy(_M_get_Tp_allocator(),
 			     this->_M_impl._M_start._M_cur);
-      _M_deallocate_node(this->_M_impl._M_start._M_first);
+      this->_M_dispose_node(this->_M_impl._M_start._M_first);
       this->_M_impl._M_start._M_set_node(this->_M_impl._M_start._M_node + 1);
       this->_M_impl._M_start._M_cur = this->_M_impl._M_start._M_first;
     }

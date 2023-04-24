@@ -475,6 +475,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 #endif
 
       static const bool _S_allow_null_map = bool(_GLIBCXX_INLINE_VERSION);
+      static const bool _S_recycle_nodes = bool(_GLIBCXX_INLINE_VERSION);
 
       typedef typename _Alloc_traits::template rebind<_Ptr>::other
 	_Map_alloc_type;
@@ -617,7 +618,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       { return _Map_alloc_type(_M_get_Tp_allocator()); }
 
       _Ptr
-      _M_allocate_node()
+      _M_really_allocate_node()
       {
 	typedef __gnu_cxx::__alloc_traits<_Tp_alloc_type> _Traits;
 	return _Traits::allocate(_M_impl, __deque_buf_size(sizeof(_Tp)));
@@ -630,19 +631,64 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	_Traits::deallocate(_M_impl, __p, __deque_buf_size(sizeof(_Tp)));
       }
 
+      _Ptr
+      _M_allocate_node()
+      {
+	if (_S_recycle_nodes)
+	  if (_Ptr& __cached = _M_cached_node())
+	    {
+	      _Ptr __ret = __cached;
+	      __cached = _Ptr();
+	      return __ret;
+	    }
+
+	return _M_really_allocate_node();
+      }
+
+      void
+      _M_dispose_node(_Ptr __p) _GLIBCXX_NOEXCEPT
+      {
+	if (_S_recycle_nodes)
+	  {
+	    _Ptr& __cached = _M_cached_node();
+	    if (!__cached)
+	      {
+		__cached = __p;
+		return;
+	      }
+	  }
+
+	_M_deallocate_node(__p);
+      }
+
       _Map_pointer
       _M_allocate_map(size_t __n)
       {
+	__n += size_t(_S_recycle_nodes);
 	_Map_alloc_type __map_alloc = _M_get_map_allocator();
-	return _Map_alloc_traits::allocate(__map_alloc, __n);
+	_Map_pointer __p = _Map_alloc_traits::allocate(__map_alloc, __n);
+	if (_S_recycle_nodes)
+	  *__p++ = _Ptr();
+	return __p;
       }
 
       void
       _M_deallocate_map(_Map_pointer __p, size_t __n) _GLIBCXX_NOEXCEPT
       {
+	if (_S_recycle_nodes)
+	  {
+	    ++__n;
+	    if (*--__p)
+	      _M_deallocate_node(*__p);
+	  }
+
 	_Map_alloc_type __map_alloc = _M_get_map_allocator();
 	_Map_alloc_traits::deallocate(__map_alloc, __p, __n);
       }
+
+      _Ptr&
+      _M_cached_node() _GLIBCXX_NOEXCEPT
+      { return *(_M_impl._M_map - 1); }
 
       void _M_initialize_map(size_t);
       void _M_create_nodes(_Map_pointer __nstart, _Map_pointer __nfinish);
@@ -721,7 +767,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       __try
 	{
 	  for (__cur = __nstart; __cur < __nfinish; ++__cur)
-	    *__cur = this->_M_allocate_node();
+	    *__cur = this->_M_really_allocate_node();
 	}
       __catch(...)
 	{
