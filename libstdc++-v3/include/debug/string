@@ -49,9 +49,8 @@
 # define _GLIBCXX_INSERT_RETURNS_ITERATOR_ONLY(expr)
 #endif
 
-#ifdef _GLIBCXX_DEBUG_PEDANTIC
-# if __cplusplus < 201103L
-#  define __glibcxx_check_string(_String)			\
+#if __cplusplus < 201103L
+# define __glibcxx_check_string(_String)			\
   _GLIBCXX_DEBUG_VERIFY_STR_COND_AT(_String != 0,		\
 				    __FILE__, __LINE__,		\
 				    __PRETTY_FUNCTION__);
@@ -59,19 +58,15 @@
   _GLIBCXX_DEBUG_VERIFY_STR_COND_AT(_String != 0 || _Len == 0,	\
 				    __FILE__, __LINE__,		\
 				    __PRETTY_FUNCTION__);
-# else
-#  define __glibcxx_check_string(_String)			\
+#else
+# define __glibcxx_check_string(_String)			\
   _GLIBCXX_DEBUG_VERIFY_STR_COND_AT(_String != nullptr,		\
 				    __FILE__, __LINE__,		\
 				    __PRETTY_FUNCTION__);
-#  define __glibcxx_check_string_len(_String,_Len)		\
+# define __glibcxx_check_string_len(_String,_Len)		\
   _GLIBCXX_DEBUG_VERIFY_STR_COND_AT(_String != nullptr || _Len == 0,	\
 				    __FILE__, __LINE__,		\
 				    __PRETTY_FUNCTION__);
-# endif
-#else
-# define __glibcxx_check_string(_String)
-# define __glibcxx_check_string_len(_String,_Len)
 #endif
 
 namespace __gnu_debug

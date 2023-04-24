@@ -17,8 +17,6 @@
 //
 // { dg-do run { xfail *-*-* } }
 
-#define _GLIBCXX_DEBUG_PEDANTIC
-
 #include <debug/string>
 
 void test01()
