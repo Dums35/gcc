@@ -618,9 +618,15 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       { return _Map_alloc_type(_M_get_Tp_allocator()); }
 
       _Ptr
-      _M_really_allocate_node()
+      _M_really_allocate_node(_Ptr_const __hint __attribute__((__unused__)))
       {
 	typedef __gnu_cxx::__alloc_traits<_Tp_alloc_type> _Traits;
+#if __cplusplus >= 201103L
+	if (__hint)
+	  return _Traits::allocate(_M_impl, __deque_buf_size(sizeof(_Tp)),
+				   __hint);
+#endif
+
 	return _Traits::allocate(_M_impl, __deque_buf_size(sizeof(_Tp)));
       }
 
@@ -632,7 +638,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       }
 
       _Ptr
-      _M_allocate_node()
+      _M_allocate_node(_Ptr_const __hint = _Ptr_const())
       {
 	if (_S_recycle_nodes)
 	  if (_Ptr& __cached = _M_cached_node())
@@ -642,7 +648,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	      return __ret;
 	    }
 
-	return _M_really_allocate_node();
+	return _M_really_allocate_node(__hint);
       }
 
       void
@@ -651,11 +657,11 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	if (_S_recycle_nodes)
 	  {
 	    _Ptr& __cached = _M_cached_node();
-	    if (!__cached)
-	      {
-		__cached = __p;
-		return;
-	      }
+	    if (__cached)
+	      _M_deallocate_node(__cached);
+
+	    __cached = __p;
+	    return;
 	  }
 
 	_M_deallocate_node(__p);
@@ -766,8 +772,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       _Map_pointer __cur;
       __try
 	{
+	  _Ptr_const __hint = _Ptr_const();
 	  for (__cur = __nstart; __cur < __nfinish; ++__cur)
-	    *__cur = this->_M_really_allocate_node();
+	    __hint = *__cur = this->_M_really_allocate_node(__hint);
 	}
       __catch(...)
 	{

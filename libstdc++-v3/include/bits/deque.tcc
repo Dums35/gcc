@@ -515,7 +515,18 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       {
 	if (empty())
 	  {
-	    // Move iterators to point to the current node begin.
+	    // Move iterators to point to the node begin.
+	    if (_Base::_S_recycle_nodes)
+	      if (typename _Base::_Ptr& __cached = this->_M_cached_node())
+		if (__cached < *this->_M_impl._M_start._M_node)
+		  {
+		    std::swap(*this->_M_impl._M_start._M_node, __cached);
+		    this->_M_impl._M_start._M_first
+		      = *this->_M_impl._M_start._M_node;
+		    this->_M_impl._M_finish._M_first
+		      = this->_M_impl._M_start._M_first;
+		  }
+
 	    this->_M_impl._M_start._M_cur = this->_M_impl._M_start._M_first;
 	    this->_M_impl._M_finish._M_cur = this->_M_impl._M_finish._M_first;
 #if __cplusplus >= 201103L
@@ -531,7 +542,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	      __N("cannot create std::deque larger than max_size()"));
 
 	_M_reserve_map_at_back();
-	*(this->_M_impl._M_finish._M_node + 1) = this->_M_allocate_node();
+	*(this->_M_impl._M_finish._M_node + 1)
+	  = this->_M_allocate_node(*this->_M_impl._M_finish._M_node);
 	__try
 	  {
 #if __cplusplus >= 201103L
@@ -567,7 +579,18 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       {
 	if (empty())
 	  {
-	    // Move iterators to point to the current node end.
+	    // Move iterators to point to the node end.
+	    if (_Base::_S_recycle_nodes)
+	      if (typename _Base::_Ptr& __cached = this->_M_cached_node())
+		if (*this->_M_impl._M_start._M_node < __cached)
+		  {
+		    std::swap(*this->_M_impl._M_start._M_node, __cached);
+		    this->_M_impl._M_start._M_first
+		      = *this->_M_impl._M_start._M_node;
+		    this->_M_impl._M_finish._M_first
+		      = this->_M_impl._M_start._M_first;
+		  }
+
 	    this->_M_impl._M_finish._M_cur = this->_M_impl._M_finish._M_last() - 1;
 	    this->_M_impl._M_start._M_cur = this->_M_impl._M_start._M_last() - 1;
 #if __cplusplus >= 201103L
@@ -583,7 +606,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 	      __N("cannot create std::deque larger than max_size()"));
 
 	_M_reserve_map_at_front();
-	*(this->_M_impl._M_start._M_node - 1) = this->_M_allocate_node();
+	*(this->_M_impl._M_start._M_node - 1)
+	  = this->_M_allocate_node(*this->_M_impl._M_start._M_node);
 	__try
 	  {
 	    this->_M_impl._M_start._M_set_node(this->_M_impl._M_start._M_node
@@ -956,8 +980,10 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       size_type __i;
       __try
 	{
+	  typename _Base::_Ptr_const __hint = *this->_M_impl._M_start._M_node;
 	  for (__i = 1; __i <= __new_nodes; ++__i)
-	    *(this->_M_impl._M_start._M_node - __i) = this->_M_allocate_node();
+	    __hint = *(this->_M_impl._M_start._M_node - __i)
+	      = this->_M_allocate_node(__hint);
 	}
       __catch(...)
 	{
@@ -981,8 +1007,10 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       size_type __i;
       __try
 	{
+	  typename _Base::_Ptr_const __hint = *this->_M_impl._M_finish._M_node;
 	  for (__i = 1; __i <= __new_nodes; ++__i)
-	    *(this->_M_impl._M_finish._M_node + __i) = this->_M_allocate_node();
+	    __hint = *(this->_M_impl._M_finish._M_node + __i)
+	      = this->_M_allocate_node(__hint);
 	}
       __catch(...)
 	{
