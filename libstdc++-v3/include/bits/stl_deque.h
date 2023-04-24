@@ -174,7 +174,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 
       iterator
       _M_const_cast() const _GLIBCXX_NOEXCEPT
-      { return iterator(_M_cur, _M_node); }
+      { return _M_cur ? iterator(_M_cur, _M_node) : iterator(); }
 
       _GLIBCXX_NODISCARD
       reference
@@ -369,6 +369,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       friend difference_type
       operator-(const _Self& __x, const _Self& __y) _GLIBCXX_NOEXCEPT
       {
+	if (__x == __y)
+	  return 0;
+
 	return difference_type(_S_buffer_size())
 	  * (__x._M_node - __y._M_node - bool(__x._M_node))
 	  + (__x._M_cur - __x._M_first)
@@ -386,6 +389,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 		  const _Deque_iterator<_Tp, _RefR, _PtrR>& __y)
 	_GLIBCXX_NOEXCEPT
 	{
+	  if (__x == __y)
+	    return 0;
+
 	  return difference_type(_S_buffer_size())
 	    * (__x._M_node - __y._M_node - bool(__x._M_node))
 	    + (__x._M_cur - __x._M_first)
@@ -442,6 +448,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       typedef typename _Alloc_traits::const_pointer	_Ptr_const;
 #endif
 
+      static const bool _S_allow_null_map = bool(_GLIBCXX_INLINE_VERSION);
+
       typedef typename _Alloc_traits::template rebind<_Ptr>::other
 	_Map_alloc_type;
       typedef __gnu_cxx::__alloc_traits<_Map_alloc_type> _Map_alloc_traits;
@@ -472,6 +480,7 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       { /* Caller must initialize map. */ }
 
 #if __cplusplus >= 201103L
+# if !_GLIBCXX_INLINE_VERSION
       _Deque_base(_Deque_base&& __x)
       : _M_impl(std::move(__x._M_get_Tp_allocator()))
       {
@@ -483,17 +492,22 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       _Deque_base(_Deque_base&& __x, const allocator_type& __a)
       : _M_impl(std::move(__x._M_impl), _Tp_alloc_type(__a))
       { __x._M_initialize_map(0); }
+# else
+      _Deque_base(_Deque_base&&) = default;
+
+      _Deque_base(_Deque_base&& __x, const allocator_type& __a) noexcept
+      : _M_impl(std::move(__x._M_impl), _Tp_alloc_type(__a))
+      { }
+# endif
 
       _Deque_base(_Deque_base&& __x, const allocator_type& __a, size_t __n)
       : _M_impl(__a)
       {
 	if (__x.get_allocator() == __a)
 	  {
-	    if (__x._M_impl._M_map)
-	      {
-		_M_initialize_map(0);
-		this->_M_impl._M_swap_data(__x._M_impl);
-	      }
+	    if (!_S_allow_null_map)
+	      _M_initialize_map(0);
+	    this->_M_impl._M_swap_data(__x._M_impl);
 	  }
 	else
 	  {
@@ -828,6 +842,8 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       static size_t _S_buffer_size() _GLIBCXX_NOEXCEPT
       { return __deque_buf_size(sizeof(_Tp)); }
 
+      using _Base::_S_allow_null_map;
+
       // Functions controlling memory layout, and nothing else.
       using _Base::_M_initialize_map;
       using _Base::_M_create_nodes;
@@ -843,6 +859,10 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        *  May be accessed via _M_impl.*
        */
       using _Base::_M_impl;
+
+      bool
+      _M_valid_map() const
+      { return !_S_allow_null_map || this->_M_impl._M_map; }
 
     public:
       // [23.2.1.1] construct/copy/destroy
@@ -942,10 +962,14 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       /// Move constructor with alternative allocator
       deque(deque&& __x, const __type_identity_t<allocator_type>& __a)
       : deque(std::move(__x), __a, typename _Alloc_traits::is_always_equal{})
+	noexcept( noexcept(
+		deque(std::move(__x), __a,
+		      declval<typename _Alloc_traits::is_always_equal>()) ) )
       { }
 
     private:
       deque(deque&& __x, const allocator_type& __a, true_type)
+	noexcept(_S_allow_null_map)
       : _Base(std::move(__x), __a)
       { }
 
@@ -1287,6 +1311,14 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       void
       resize(size_type __new_size)
       {
+	if (!_M_valid_map())
+	  {
+	    _M_initialize_map(_S_check_init_len(__new_size,
+						_M_get_Tp_allocator()));
+	    _M_default_initialize();
+	    return;
+	  }
+
 	const size_type __len = size();
 	if (__new_size > __len)
 	  _M_default_append(__new_size - __len);
@@ -1324,6 +1356,14 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       resize(size_type __new_size, value_type __x = value_type())
 #endif
       {
+	if (!_M_valid_map())
+	  {
+	    _M_initialize_map(_S_check_init_len(__new_size,
+						_M_get_Tp_allocator()));
+	    _M_fill_initialize(__x);
+	    return;
+	  }
+
 	const size_type __len = size();
 	if (__new_size > __len)
 	  _M_fill_insert(this->_M_impl._M_finish, __new_size - __len, __x);
@@ -1500,6 +1540,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       void
       push_front(const value_type& __x)
       {
+	if (!_M_valid_map())
+	  _M_initialize_map(0);
+
 	if (this->_M_impl._M_start._M_cur != this->_M_impl._M_start._M_first)
 	  {
 	    _Alloc_traits::construct(this->_M_impl,
@@ -1537,6 +1580,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       void
       push_back(const value_type& __x)
       {
+	if (!_M_valid_map())
+	  _M_initialize_map(0);
+
 	if (this->_M_impl._M_finish._M_cur
 	    != this->_M_impl._M_finish._M_last - 1)
 	  {
@@ -2212,20 +2258,24 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       // Destroy all elements and deallocate all memory, then replace
       // with elements created from __args.
       template<typename... _Args>
-      void
-      _M_replace_map(_Args&&... __args)
-      {
-	// Create new data first, so if allocation fails there are no effects.
-	deque __newobj(std::forward<_Args>(__args)...);
-	// Free existing storage using existing allocator.
-	clear();
-	_M_deallocate_node(*begin()._M_node); // one node left after clear()
-	_M_deallocate_map(this->_M_impl._M_map, this->_M_impl._M_map_size);
-	this->_M_impl._M_map = nullptr;
-	this->_M_impl._M_map_size = 0;
-	// Take ownership of replacement memory.
-	this->_M_impl._M_swap_data(__newobj._M_impl);
-      }
+	void
+	_M_replace_map(_Args&&... __args)
+	{
+	  // Create new data first, so if allocation fails there are no effects.
+	  deque __newobj(std::forward<_Args>(__args)...);
+	  if (_M_valid_map())
+	    {
+	      // Free existing storage using existing allocator.
+	      clear();
+	      _M_deallocate_node(*begin()._M_node); // one node left after clear()
+	      _M_deallocate_map(this->_M_impl._M_map, this->_M_impl._M_map_size);
+	      this->_M_impl._M_map = nullptr;
+	      this->_M_impl._M_map_size = 0;
+	    }
+
+	  // Take ownership of replacement memory.
+	  this->_M_impl._M_swap_data(__newobj._M_impl);
+	}
 
       // Do move assignment when the allocator propagates.
       void

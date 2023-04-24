@@ -140,6 +140,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       deque<_Tp, _Alloc>::
       emplace_front(_Args&&... __args)
       {
+	if (!_M_valid_map())
+	  _M_initialize_map(0);
+
 	if (this->_M_impl._M_start._M_cur != this->_M_impl._M_start._M_first)
 	  {
 	    _Alloc_traits::construct(this->_M_impl,
@@ -164,6 +167,9 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       deque<_Tp, _Alloc>::
       emplace_back(_Args&&... __args)
       {
+	if (!_M_valid_map())
+	  _M_initialize_map(0);
+
 	if (this->_M_impl._M_finish._M_cur
 	    != this->_M_impl._M_finish._M_last - 1)
 	  {
@@ -307,6 +313,14 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
     deque<_Tp, _Alloc>::
     _M_fill_insert(iterator __pos, size_type __n, const value_type& __x)
     {
+      if (!_M_valid_map())
+	{
+	  _M_initialize_map(_S_check_init_len(__n,
+					      _M_get_Tp_allocator()));
+	  _M_fill_initialize(__x);
+	  return;
+	}
+
       if (__pos._M_cur == this->_M_impl._M_start._M_cur)
 	{
 	  iterator __new_start = _M_reserve_elements_at_front(__n);
@@ -616,7 +630,16 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       _M_range_insert_aux(iterator __pos,
 			  _InputIterator __first, _InputIterator __last,
 			  std::input_iterator_tag)
-      { std::copy(__first, __last, std::inserter(*this, __pos)); }
+      {
+	if (!_M_valid_map())
+	  {
+	    _M_range_initialize(__first, __last,
+				std::__iterator_category(__first));
+	    return;
+	  }
+
+	std::copy(__first, __last, std::inserter(*this, __pos));
+      }
 
   template <typename _Tp, typename _Alloc>
     template <typename _ForwardIterator>
@@ -626,6 +649,13 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 			  _ForwardIterator __first, _ForwardIterator __last,
 			  std::forward_iterator_tag)
       {
+	if (!_M_valid_map())
+	  {
+	    _M_range_initialize(__first, __last,
+				std::__iterator_category(__first));
+	    return;
+	  }
+
 	const size_type __n = std::distance(__first, __last);
 	if (__pos._M_cur == this->_M_impl._M_start._M_cur)
 	  {

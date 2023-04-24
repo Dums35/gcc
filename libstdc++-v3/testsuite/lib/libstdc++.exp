@@ -1144,6 +1144,30 @@ proc check_v3_target_cpp_feature_test { cond } {
     set result [v3_check_preprocessor_condition cpp_feature_test "$cond" $inc]
     set cxxflags $cxxflags_saved
     return $result
+
+proc check_v3_target_versionnamespace_mode { } {
+    return [check_v3_target_prop_cached et_versionnamespace_mode {
+	set cond "_GLIBCXX_INLINE_VERSION"
+	return [v3_check_preprocessor_condition versionnamespace $cond]
+    }]
+}
+
+proc check_v3_target_normal_mode { } {
+    return [check_v3_target_prop_cached et_normal_mode {
+	global tool
+	# Set up and compile a C++ test program that depends
+	# on normal mode activated.
+	set src normal_mode[pid].cc
+
+    set code "
+	#include <bits/c++config.h>
+	#if ! ($cond)
+	#error '$cond' is false
+	#endif
+	"
+    set flags "$cxxflags $DEFAULT_CXXFLAGS -Werror"
+
+    return [v3_try_preprocess name $code $flags]
 }
 
 # Return 1 if Debug Mode is active, 0 otherwise.
