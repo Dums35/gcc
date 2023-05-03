@@ -48,8 +48,27 @@ void test01()
   VERIFY(m.count(1) == 0);
 }
 
+void test02()
+{
+  unordered_set<int> u({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 });
+  VERIFY( u.size() == 13 );
+  VERIFY( u.count(0) == 1 );
+  VERIFY( u.count(13) == 0 );
+
+  auto bkt_count = u.bucket_count();
+  u.insert({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 });
+  VERIFY( u.size() == 13 );
+  VERIFY( u.bucket_count() == bkt_count );
+
+  u.clear();
+  u.insert({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 });
+  VERIFY( u.size() == 13 );
+  VERIFY( u.bucket_count() == bkt_count );
+}
+
 int main()
 {
   __gnu_test::set_memory_limits();
   test01();
+  test02();
 }

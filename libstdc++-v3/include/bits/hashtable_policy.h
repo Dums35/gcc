@@ -1083,7 +1083,16 @@ namespace __detail
 
       void
       insert(initializer_list<value_type> __l)
-      { this->insert(__l.begin(), __l.end()); }
+      {
+	__hashtable& __h = _M_conjure_hashtable();
+	if (__h.empty() && __h.bucket_count() == 1)
+	  {
+	    __h = __l;
+	    return;
+	  }
+
+	this->insert(__l.begin(), __l.end());
+      }
 
       template<typename _InputIterator>
 	void

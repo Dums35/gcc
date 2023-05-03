@@ -680,7 +680,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		 const _Hash& __hf = _Hash(),
 		 const key_equal& __eql = key_equal(),
 		 const allocator_type& __a = allocator_type())
-      : _Hashtable(__l.begin(), __l.end(), __bkt_count_hint,
+      : _Hashtable(__l.begin(), __l.end(),
+		   __bkt_count_hint == 0 ? __l.size() : __bkt_count_hint,
 		   __hf, __eql, __a, __unique_keys{})
       { }
 
