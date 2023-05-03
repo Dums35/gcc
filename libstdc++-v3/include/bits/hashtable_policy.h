@@ -263,6 +263,81 @@ namespace __detail
       __hashtable_alloc& _M_h;
     };
 
+  template<typename _NodeAlloc>
+    struct _PreAllocNode
+    {
+    private:
+      using __node_alloc_type = _NodeAlloc;
+      using __hashtable_alloc = _Hashtable_alloc<__node_alloc_type>;
+      using __node_alloc_traits =
+	typename __hashtable_alloc::__node_alloc_traits;
+
+    public:
+      using __node_ptr = typename __hashtable_alloc::__node_ptr;
+
+      _PreAllocNode(std::size_t __size, __hashtable_alloc& __h)
+      : _M_nodes(nullptr), _M_h(__h)
+      {
+	__try
+	  {
+	    __node_ptr __nxt = nullptr;
+	    for (std::size_t __i = 0; __i != __size; ++__i)
+	      {
+		auto __tmp = _M_h._M_allocate_node_ptr(__nxt);
+		if (__nxt)
+		  __nxt->_M_nxt = __tmp;
+		else
+		  _M_nodes = __tmp;
+
+		__nxt = __tmp;
+	      }
+	  }
+	__catch(...)
+	{
+	  _M_deallocate_nodes();
+	  __throw_exception_again;
+	}
+      }
+
+      _PreAllocNode(const _PreAllocNode&) = delete;
+
+      ~_PreAllocNode()
+      { _M_deallocate_nodes(); }
+
+      template<typename... _Args>
+	__node_ptr
+	operator()(__node_ptr __hint, _Args&&... __args) const
+	{
+	  if (!_M_nodes)
+	    return _M_h._M_allocate_node(__hint, std::forward<_Args>(__args)...);
+
+	  __node_ptr __node = _M_nodes;
+	  _M_nodes = _M_nodes->_M_next();
+	  __node->_M_nxt = nullptr;
+	  auto& __a = _M_h._M_node_allocator();
+	  _NodePtrGuard<__hashtable_alloc, __node_ptr> __guard(_M_h, __node);
+	  __node_alloc_traits::construct(__a, __node->_M_valptr(),
+					 std::forward<_Args>(__args)...);
+	  __guard._M_ptr = nullptr;
+	  return __node;
+	}
+
+    private:
+      void
+      _M_deallocate_nodes()
+      {
+	while (_M_nodes)
+	  {
+	    __node_ptr __tmp = _M_nodes;
+	    _M_nodes = _M_nodes->_M_next();
+	    _M_h._M_deallocate_node_ptr(__tmp);
+	  }
+      }
+
+      mutable __node_ptr _M_nodes;
+      __hashtable_alloc& _M_h;
+    };
+
   // Auxiliary types used for all instantiations of _Hashtable nodes
   // and iterators.
 
@@ -2099,6 +2174,10 @@ namespace __detail
       _M_node_allocator() const
       { return __ebo_node_alloc::_M_cget(); }
 
+      // Allocate a node.
+      __node_ptr
+      _M_allocate_node_ptr(__node_ptr __hint);
+
       // Allocate a node and construct an element within it.
       template<typename... _Args>
 	__node_ptr
@@ -2126,6 +2205,27 @@ namespace __detail
 
   // Definitions of class template _Hashtable_alloc's out-of-line member
   // functions.
+  template<typename _NodeAlloc>
+    auto
+    _Hashtable_alloc<_NodeAlloc>::_M_allocate_node_ptr(__node_ptr __hint)
+    -> __node_ptr
+    {
+      auto& __alloc = _M_node_allocator();
+      typename __node_alloc_traits::pointer __nptr;
+      if (__hint)
+	{
+	  typedef typename __node_alloc_traits::const_pointer _CPtr;
+	  auto __hptr = std::pointer_traits<_CPtr>::pointer_to(*__hint);
+	  __nptr = __node_alloc_traits::allocate(__alloc, 1, __hptr);
+	}
+      else
+	__nptr = __node_alloc_traits::allocate(__alloc, 1);
+
+      __node_ptr __n = std::__to_address(__nptr);
+      ::new ((void*)__n) __node_type;
+      return __n;
+    }
+
   template<typename _NodeAlloc>
     template<typename... _Args>
       auto

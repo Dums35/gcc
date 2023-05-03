@@ -303,6 +303,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	__detail::_ReuseOrAllocNode<__node_alloc_type>;
       using __alloc_node_gen_t =
 	__detail::_AllocNode<__node_alloc_type>;
+      using __prealloc_node_gen_t =
+	__detail::_PreAllocNode<__node_alloc_type>;
+
       using __node_builder_t =
 	__detail::_NodeBuilder<_ExtractKey>;
 
@@ -580,6 +583,22 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       template<typename _Ht, typename _NodeGenerator>
 	void
 	_M_assign(_Ht&&, _NodeGenerator&);
+
+      template<typename _Ht>
+	void
+	_M_assign(_Ht&& __ht)
+	{
+	  if (is_nothrow_copy_constructible<value_type>::value)
+	    {
+	      __alloc_node_gen_t __node_gen(*this);
+	      _M_assign(std::forward<_Ht>(__ht), __node_gen);
+	    }
+	  else
+	    {
+	      __prealloc_node_gen_t __node_gen(_M_element_count, *this);
+	      _M_assign(std::forward<_Ht>(__ht), __node_gen);
+	    }
+	}
 
       void
       _M_move_assign(_Hashtable&&, true_type);
@@ -1550,10 +1569,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	      _M_bucket_count = __ht._M_bucket_count;
 	      _M_element_count = __ht._M_element_count;
 	      _M_rehash_policy = __ht._M_rehash_policy;
-	      __alloc_node_gen_t __alloc_node_gen(*this);
 	      __try
 		{
-		  _M_assign(__ht, __alloc_node_gen);
+		  _M_assign(__ht);
 		}
 	      __catch(...)
 		{
@@ -1763,10 +1781,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _M_bucket_count(__ht._M_bucket_count),
       _M_element_count(__ht._M_element_count),
       _M_rehash_policy(__ht._M_rehash_policy)
-    {
-      __alloc_node_gen_t __alloc_node_gen(*this);
-      _M_assign(__ht, __alloc_node_gen);
-    }
+    { _M_assign(__ht); }
 
   template<typename _Key, typename _Value, typename _Alloc,
 	   typename _ExtractKey, typename _Equal,
@@ -1820,10 +1835,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _M_bucket_count(__ht._M_bucket_count),
       _M_element_count(__ht._M_element_count),
       _M_rehash_policy(__ht._M_rehash_policy)
-    {
-      __alloc_node_gen_t __alloc_node_gen(*this);
-      _M_assign(__ht, __alloc_node_gen);
-    }
+    { _M_assign(__ht); }
 
   template<typename _Key, typename _Value, typename _Alloc,
 	   typename _ExtractKey, typename _Equal,
@@ -1863,12 +1875,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	}
       else
 	{
-	  __alloc_node_gen_t __alloc_gen(*this);
-
 	  using _Fwd_Ht = __conditional_t<
 	    __move_if_noexcept_cond<value_type>::value,
 	    const _Hashtable&, _Hashtable&&>;
-	  _M_assign(std::forward<_Fwd_Ht>(__ht), __alloc_gen);
+	  _M_assign(std::forward<_Fwd_Ht>(__ht));
 	  __ht.clear();
 	}
     }
