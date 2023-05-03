@@ -305,6 +305,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	__detail::_AllocNode<__node_alloc_type>;
       using __prealloc_node_gen_t =
 	__detail::_PreAllocNode<__node_alloc_type>;
+      using __prealloc_hashtable_nodes_gen_t =
+	__detail::_PreAllocHashtableNodes<__node_alloc_type>;
 
       using __node_builder_t =
 	__detail::_NodeBuilder<_ExtractKey>;
@@ -391,6 +393,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	       typename _RehashPolicya, typename _Traitsa,
 	       bool _Unique_keysa>
 	friend struct __detail::_Equality;
+
+      template<typename _NAlloc>
+	friend struct __detail::_PreAllocHashtableNodes;
 
     public:
       using size_type = typename __hashtable_base::size_type;
@@ -596,9 +601,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  else
 	    {
 	      __prealloc_node_gen_t __node_gen(_M_element_count, *this);
-	      _M_assign(std::forward<_Ht>(__ht), __node_gen);
+	      _M_assign_stable(std::forward<_Ht>(__ht), __node_gen);
 	    }
 	}
+
+      template<typename _Ht, typename _NodeGenerator>
+	void
+	_M_assign_stable(_Ht&&, const _NodeGenerator&);
 
       void
       _M_move_assign(_Hashtable&&, true_type);
@@ -1689,6 +1698,72 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	      }
 
 	    _M_set_last(__prev_n);
+	  }
+	__catch(...)
+	  {
+	    clear();
+	    if (__buckets)
+	      _M_deallocate_buckets();
+	    __throw_exception_again;
+	  }
+      }
+
+  template<typename _Key, typename _Value, typename _Alloc,
+	   typename _ExtractKey, typename _Equal,
+	   typename _Hash, typename _RangeHash, typename _Unused,
+	   typename _RehashPolicy, typename _Traits>
+    template<typename _Ht, typename _NodeGenerator>
+      void
+      _Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal,
+		 _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::
+      _M_assign_stable(_Ht&& __ht, const _NodeGenerator& __node_gen)
+      {
+	__buckets_ptr __buckets = nullptr;
+	if (!_M_buckets)
+	  _M_buckets = __buckets = _M_allocate_buckets(_M_bucket_count);
+
+	__try
+	  {
+	    if (!__ht._M_before_begin._M_nxt)
+	      return;
+
+	    __node_ptr __prev_n = nullptr;
+	    for (std::size_t __bkt = 0; __bkt != _M_bucket_count; ++__bkt)
+	      {
+		if (__ht._M_buckets[__bkt] == nullptr)
+		  continue;
+
+		__node_ptr __ht_n =
+		  static_cast<__node_ptr>(__ht._M_buckets[__bkt]->_M_nxt);
+		__node_ptr __prev_ht_n = __ht_n;
+		__node_base_ptr __nxt_bkt_n = __bkt < _M_bucket_count - 1
+		  ? __ht._M_buckets[__bkt + 1] : nullptr;
+		do
+		  {
+		    __node_ptr __this_n
+		      = __node_gen(__prev_n, __bkt,
+				   __fwd_value_for<_Ht>(__ht_n->_M_v()));
+		    this->_M_copy_code(*__this_n, *__ht_n);
+		    if (__prev_n)
+		      {
+			if (!_M_buckets[__bkt])
+			  _M_buckets[__bkt] = __prev_n;
+			__prev_n->_M_nxt = __this_n;
+		      }
+		    else
+		      {
+			_M_buckets[__bkt] = &_M_before_begin;
+			_M_before_begin._M_nxt = __this_n;
+		      }
+
+		    __prev_n = __this_n;
+		    __prev_ht_n = __ht_n;
+		    __ht_n = __ht_n->_M_next();
+		  }
+		while (__ht_n
+		       && __ht._M_is_nxt_in_bucket(__bkt, __prev_ht_n,
+						   __nxt_bkt_n));
+	      }
 	  }
 	__catch(...)
 	  {

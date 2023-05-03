@@ -38,6 +38,6 @@ int main()
 
   std::unordered_multiset<int> copy(ref);
   VERIFY( copy.size() == ref.size() );
-  VERIFY( std::equal(ref.begin(), ref.end(), copy.begin()) );
+  VERIFY( copy == ref );
   return 0;
 }
