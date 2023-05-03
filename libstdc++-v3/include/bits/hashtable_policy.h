@@ -1166,7 +1166,7 @@ namespace __detail
 	    return;
 	  }
 
-	this->insert(__l.begin(), __l.end());
+	_M_insert_range(__l.begin(), __l.end(), __unique_keys{});
       }
 
       template<typename _InputIterator>
@@ -1224,8 +1224,16 @@ namespace __detail
 	  __h._M_rehash(__last_mgr, __do_rehash.second, __uks);
 
 	__rehash_guard._M_guarded_obj = nullptr;
-	__node_gen_type __node_gen(__h);
-	__h._M_insert_range(__first, __last, __last_mgr, __node_gen);
+	if (is_nothrow_copy_constructible<value_type>::value)
+	  {
+	    _AllocNode<__node_alloc_type> __node_gen(__h);
+	    __h._M_insert_range(__first, __last, __last_mgr, __node_gen);
+	  }
+	else
+	  {
+	    _PreAllocNode<__node_alloc_type> __node_gen(__n_elt, __h);
+	    __h._M_insert_range(__first, __last, __last_mgr, __node_gen);
+	  }
       }
 
   /**

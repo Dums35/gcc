@@ -1535,8 +1535,16 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  }
 
 	auto __last_mgr = _M_get_last_node_mgr();
-	__alloc_node_gen_t __node_gen(*this);
-	_M_insert_range(__f, __l, __last_mgr, __node_gen);
+	if (is_nothrow_copy_constructible<value_type>::value)
+	  {
+	    __alloc_node_gen_t __node_gen(*this);
+	    _M_insert_range(__f, __l, __last_mgr, __node_gen);
+	  }
+	else
+	  {
+	    __prealloc_node_gen_t __node_gen(__nb_elems, *this);
+	    _M_insert_range(__f, __l, __last_mgr, __node_gen);
+	  }
       }
 
   template<typename _Key, typename _Value, typename _Alloc,
