@@ -1818,6 +1818,16 @@ namespace __detail
       : __hash_code_base(__hash), _EqualEBO(__eq)
       { }
 
+      static bool
+      _S_cached_hash_code_equals(const _Hash_node_code_cache<false>&,
+				 const _Hash_node_code_cache<false>&)
+      { return false; }
+
+      static bool
+      _S_cached_hash_code_equals(const _Hash_node_code_cache<true>& __lhn,
+				 const _Hash_node_code_cache<true>& __rhn)
+      { return __lhn._M_hash_code == __rhn._M_hash_code; }
+
       bool
       _M_key_equals(const _Key& __k,
 		    const _Hash_node_value<_Value,
@@ -1914,6 +1924,7 @@ namespace __detail
 	      _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits, true>::
     _M_equal(const __hashtable& __other) const
     {
+      using __node_base_ptr = typename __hashtable::__node_base_ptr;
       using __node_ptr = typename __hashtable::__node_ptr;
       const __hashtable* __this = static_cast<const __hashtable*>(this);
       if (__this->size() != __other.size())
@@ -1926,14 +1937,16 @@ namespace __detail
 	  if (!__prev_n)
 	    return false;
 
+	  __node_base_ptr __nxt_ybkt_n = __ybkt < __other._M_bucket_count - 1
+	    ? __other._M_buckets[__ybkt + 1]
+	    : nullptr;
 	  for (__node_ptr __n = static_cast<__node_ptr>(__prev_n->_M_nxt);;
 	       __n = __n->_M_next())
 	    {
 	      if (__n->_M_v() == __x_n->_M_v())
 		break;
 
-	      if (!__n->_M_nxt
-		  || __other._M_bucket_index(*__n->_M_next()) != __ybkt)
+	      if (!__other._M_is_nxt_in_bucket(__ybkt, __n, __nxt_ybkt_n))
 		return false;
 	    }
 	}
@@ -1966,6 +1979,7 @@ namespace __detail
 	      _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits, false>::
     _M_equal(const __hashtable& __other) const
     {
+      using __node_base_ptr = typename __hashtable::__node_base_ptr;
       using __node_ptr = typename __hashtable::__node_ptr;
       using const_iterator = typename __hashtable::const_iterator;
       const __hashtable* __this = static_cast<const __hashtable*>(this);
@@ -1987,6 +2001,9 @@ namespace __detail
 	  if (!__y_prev_n)
 	    return false;
 
+	  __node_base_ptr __nxt_ybkt_n = __ybkt < __other._M_bucket_count - 1
+	    ? __other._M_buckets[__ybkt + 1]
+	    : nullptr;
 	  __node_ptr __y_n = static_cast<__node_ptr>(__y_prev_n->_M_nxt);
 	  for (;;)
 	    {
@@ -1995,11 +2012,13 @@ namespace __detail
 		break;
 
 	      auto __y_ref_n = __y_n;
-	      for (__y_n = __y_n->_M_next(); __y_n; __y_n = __y_n->_M_next())
+	      auto __prev_y_n = __y_n;
+	      __y_n = __y_n->_M_next();
+	      for (; __y_n; __prev_y_n = __y_n, __y_n = __y_n->_M_next())
 		if (!__other._M_node_equals(*__y_ref_n, *__y_n))
 		  break;
 
-	      if (!__y_n || __other._M_bucket_index(*__y_n) != __ybkt)
+	      if (!__other._M_is_nxt_in_bucket(__ybkt, __prev_y_n, __nxt_ybkt_n))
 		return false;
 	    }
 

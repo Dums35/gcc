@@ -906,6 +906,20 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __node_base_ptr
       _M_find_before_node(const key_type&);
 
+      bool
+      _M_is_nxt_in_bucket(size_type __bkt, __node_ptr __prev_n,
+			  __node_base_ptr __nxt_bkt_n) const
+      {
+	if (!__prev_n->_M_nxt || __prev_n == __nxt_bkt_n)
+	  return false;
+
+	__node_ptr __n = __prev_n->_M_next();
+	if (__hashtable_base::_S_cached_hash_code_equals(*__prev_n, *__n))
+	  return true;
+
+	return _M_bucket_index(*__n) == __bkt;
+      }
+
       // Find and insert helper functions and types
       // Find the node before the one matching the criteria.
       __node_base_ptr
@@ -2281,13 +2295,15 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       if (!__prev_p)
 	return nullptr;
 
+      __node_base_ptr __nxt_bkt_n
+	= __bkt < _M_bucket_count - 1 ? _M_buckets[__bkt + 1] : nullptr;
       for (__node_ptr __p = static_cast<__node_ptr>(__prev_p->_M_nxt);;
 	   __p = __p->_M_next())
 	{
 	  if (this->_M_equals(__k, __code, *__p))
 	    return __prev_p;
 
-	  if (!__p->_M_nxt || _M_bucket_index(*__p->_M_next()) != __bkt)
+	  if (!_M_is_nxt_in_bucket(__bkt, __p, __nxt_bkt_n))
 	    break;
 	  __prev_p = __p;
 	}
@@ -2311,13 +2327,15 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	if (!__prev_p)
 	  return nullptr;
 
+	__node_base_ptr __nxt_bkt_n
+	  = __bkt < _M_bucket_count - 1 ? _M_buckets[__bkt + 1] : nullptr;
 	for (__node_ptr __p = static_cast<__node_ptr>(__prev_p->_M_nxt);;
 	     __p = __p->_M_next())
 	  {
 	    if (this->_M_equals_tr(__k, __code, *__p))
 	      return __prev_p;
 
-	    if (!__p->_M_nxt || _M_bucket_index(*__p->_M_next()) != __bkt)
+	    if (!_M_is_nxt_in_bucket(__bkt, __p, __nxt_bkt_n))
 	      break;
 	    __prev_p = __p;
 	  }
