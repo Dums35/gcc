@@ -235,12 +235,11 @@ namespace __gnu_test
 		"setup_base::compare containers size not equal");
 
 	// Should test iterator validity before and after exception.
-	bool __equal_it = std::equal(__test.begin(), __test.end(),
-				     __control.begin());
+	bool __equal = __test == __control;
 
-	if (!__equal_it)
+	if (!__equal)
 	  throw std::logic_error(
-		"setup_base::compare containers iterators not equal");
+		"setup_base::compare containers not equal");
 
 	return true;
       }

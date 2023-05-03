@@ -37,6 +37,7 @@
 #include <bits/stl_pair.h>	// for std::pair
 #include <ext/aligned_buffer.h>	// for __gnu_cxx::__aligned_buffer
 #include <ext/alloc_traits.h>	// for std::__alloc_rebind
+#include <bits/stl_tempbuf.h>	// for std::get_temporary_buffer.
 #include <ext/numeric_traits.h>	// for __gnu_cxx::__int_traits
 
 namespace std _GLIBCXX_VISIBILITY(default)
@@ -365,6 +366,127 @@ namespace __detail
       }
 
       mutable __node_ptr _M_nodes;
+      __hashtable_alloc& _M_h;
+    };
+
+  template<typename _NodeAlloc>
+    struct _PreAllocHashtableNodes
+    {
+    private:
+      using __node_alloc_type = _NodeAlloc;
+      using __hashtable_alloc = _Hashtable_alloc<__node_alloc_type>;
+      using __node_alloc_traits =
+	typename __hashtable_alloc::__node_alloc_traits;
+      using __node_base = typename __hashtable_alloc::__node_base;
+
+    public:
+      using __node_ptr = typename __hashtable_alloc::__node_ptr;
+
+      template<typename _Ht>
+	_PreAllocHashtableNodes(_Ht& __ht, __hashtable_alloc& __ha)
+	: _M_h(__ha), _M_before_free_nodes()
+	, _M_buckets(std::get_temporary_buffer<__node_base*>(__ht.bucket_count()))
+	{
+	  __builtin_memset(_M_buckets.first, 0,
+			   _M_buckets.second * sizeof(__node_base*));
+	  __try
+	    {
+	      __node_ptr __hint = nullptr;
+	      __node_base* __prev = std::__addressof(_M_before_free_nodes);
+	      for (std::size_t __bkt = 0; __bkt != _M_buckets.second;)
+		{
+		  if (!__ht._M_buckets[__bkt])
+		    {
+		      ++__bkt;
+		      continue;
+		    }
+
+		  auto __nxt_bkt = __bkt;
+		  for (++__nxt_bkt; __nxt_bkt != _M_buckets.second; ++__nxt_bkt)
+		    {
+		      if (__ht._M_buckets[__nxt_bkt])
+			break;
+		    }
+
+		  __node_ptr __ht_bkt_prev = nullptr;
+		  do
+		    {
+		      __node_ptr __tmp = _M_h._M_allocate_node_ptr(__hint);
+		      if (!_M_buckets.first[__bkt])
+			_M_buckets.first[__bkt] = __prev;
+
+		      __prev->_M_nxt = __tmp;
+		      __prev = __hint = __tmp;
+		      __ht_bkt_prev = __ht_bkt_prev
+			? __ht_bkt_prev->_M_next() : __ht._M_bucket_begin(__bkt);
+		    }
+		  while (__ht_bkt_prev->_M_nxt &&
+			 __ht._M_is_nxt_in_bucket(__bkt, __ht_bkt_prev,
+						  __ht._M_buckets[__nxt_bkt]));
+		  __bkt = __nxt_bkt;
+		}
+	    }
+	  __catch(...)
+	  {
+	    _M_deallocate_nodes();
+	    __throw_exception_again;
+	  }
+	}
+
+      _PreAllocHashtableNodes(const _PreAllocHashtableNodes&) = delete;
+
+      ~_PreAllocHashtableNodes()
+      { _M_deallocate_nodes(); }
+
+      template<typename... _Args>
+	__node_ptr
+	operator()(__node_ptr __hint, std::size_t __bkt, _Args&&... __args) const
+	{
+	  if (__bkt >= _M_buckets.second || _M_buckets.first[__bkt] == nullptr)
+	    return _M_h._M_allocate_node(__hint,
+					 std::forward<_Args>(__args)...);
+
+	  if (_M_buckets.first[__bkt] != std::__addressof(_M_before_free_nodes))
+	    {
+	      _M_buckets.first[_M_last_access_bkt] = nullptr;
+	      _M_buckets.first[__bkt] = std::__addressof(_M_before_free_nodes);
+	    }
+
+	  _M_last_access_bkt = __bkt;
+	  auto __prev = _M_buckets.first[__bkt];
+	  __node_ptr __node = static_cast<__node_ptr>(__prev->_M_nxt);
+	  _M_before_free_nodes._M_nxt = __node->_M_nxt;
+	  if (_M_before_free_nodes._M_nxt == nullptr)
+	    _M_buckets.first[__bkt] = nullptr;
+
+	  __node->_M_nxt = nullptr;
+	  auto& __a = _M_h._M_node_allocator();
+	  _NodePtrGuard<__hashtable_alloc, __node_ptr> __guard(_M_h, __node);
+	  __node_alloc_traits::construct(__a, __node->_M_valptr(),
+					 std::forward<_Args>(__args)...);
+	  __guard._M_ptr = nullptr;
+	  return __node;
+	}
+
+    private:
+      void
+      _M_deallocate_nodes()
+      {
+	__node_ptr __n
+	  = static_cast<__node_ptr>(_M_before_free_nodes._M_nxt);
+	while (__n)
+	  {
+	    __node_ptr __tmp = __n;
+	    __n = __n->_M_next();
+	    _M_h._M_deallocate_node_ptr(__tmp);
+	  }
+
+	std::return_temporary_buffer(_M_buckets.first);
+      }
+
+      mutable __node_base _M_before_free_nodes;
+      mutable std::pair<__node_base**, std::ptrdiff_t> _M_buckets;
+      mutable std::size_t _M_last_access_bkt = 0;
       __hashtable_alloc& _M_h;
     };
 
