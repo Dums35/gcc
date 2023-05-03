@@ -48,7 +48,7 @@ test01()
   VERIFY( um.size() == 1 );
 
   VERIFY( __gnu_test::counter::count() == 3 );
-  VERIFY( __gnu_test::counter::get()._M_increments == 4 );
+  VERIFY( __gnu_test::counter::get()._M_increments == 5 );
 }
 
 void
@@ -68,7 +68,7 @@ test02()
   VERIFY( um.size() == 1 );
 
   VERIFY( __gnu_test::counter::count() == 3 );
-  VERIFY( __gnu_test::counter::get()._M_increments == 3 );
+  VERIFY( __gnu_test::counter::get()._M_increments == 4 );
 }
 
 std::size_t
@@ -97,7 +97,7 @@ test11()
   VERIFY( um.size() == 1 );
 
   VERIFY( __gnu_test::counter::count() == 3 );
-  VERIFY( __gnu_test::counter::get()._M_increments == 4 );
+  VERIFY( __gnu_test::counter::get()._M_increments == 5 );
 }
 
 std::size_t
@@ -125,7 +125,7 @@ test12()
   VERIFY( um.size() == 1 );
 
   VERIFY( __gnu_test::counter::count() == 3 );
-  VERIFY( __gnu_test::counter::get()._M_increments == 3 );
+  VERIFY( __gnu_test::counter::get()._M_increments == 4 );
 }
 
 struct hash_string_functor
@@ -155,7 +155,7 @@ test21()
   VERIFY( um.size() == 1 );
 
   VERIFY( __gnu_test::counter::count() == 3 );
-  VERIFY( __gnu_test::counter::get()._M_increments == 4 );
+  VERIFY( __gnu_test::counter::get()._M_increments == 5 );
 }
 
 struct hash_string_view_noexcept_functor
@@ -185,7 +185,7 @@ test22()
   VERIFY( um.size() == 1 );
 
   VERIFY( __gnu_test::counter::count() == 3 );
-  VERIFY( __gnu_test::counter::get()._M_increments == 3 );
+  VERIFY( __gnu_test::counter::get()._M_increments == 4 );
 }
 
 struct hash_string_view_functor
@@ -215,7 +215,7 @@ test23()
   VERIFY( um.size() == 1 );
 
   VERIFY( __gnu_test::counter::count() == 3 );
-  VERIFY( __gnu_test::counter::get()._M_increments == 3 );
+  VERIFY( __gnu_test::counter::get()._M_increments == 4 );
 }
 
 void
@@ -244,7 +244,7 @@ test03()
     VERIFY( um.size() == 1 );
 
     VERIFY( __gnu_test::counter::count() == origin + increments );
-    VERIFY( __gnu_test::counter::get()._M_increments == increments );
+    VERIFY( __gnu_test::counter::get()._M_increments == increments + 1 );
   }
   VERIFY( __gnu_test::counter::count() == origin );
 

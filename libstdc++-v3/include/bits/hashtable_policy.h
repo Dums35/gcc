@@ -62,25 +62,55 @@ namespace __detail
 	   typename _Unused, typename _Traits>
     struct _Hashtable_base;
 
+  template<typename _Iterator>
+    using __it_diff_t =
+      typename std::iterator_traits<_Iterator>::difference_type;
+
   // Helper function: return distance(first, last) for forward
   // iterators, or 0/1 for input iterators.
   template<typename _Iterator>
-    inline typename std::iterator_traits<_Iterator>::difference_type
+    inline __it_diff_t<_Iterator>
     __distance_fw(_Iterator __first, _Iterator __last,
 		  std::input_iterator_tag)
     { return __first != __last ? 1 : 0; }
 
   template<typename _Iterator>
-    inline typename std::iterator_traits<_Iterator>::difference_type
+    inline __it_diff_t<_Iterator>
     __distance_fw(_Iterator __first, _Iterator __last,
 		  std::forward_iterator_tag)
     { return std::distance(__first, __last); }
 
   template<typename _Iterator>
-    inline typename std::iterator_traits<_Iterator>::difference_type
+    inline __it_diff_t<_Iterator>
     __distance_fw(_Iterator __first, _Iterator __last)
     { return __distance_fw(__first, __last,
 			   std::__iterator_category(__first)); }
+
+  // Like __distance_fw but for random access iterators.
+  template<typename _Iterator>
+    inline __it_diff_t<_Iterator>
+    __distance_rai(_Iterator __first, _Iterator __last,
+		   __it_diff_t<_Iterator> __max,
+		   std::input_iterator_tag)
+    {
+      return __first != __last
+	? std::max<__it_diff_t<_Iterator>>(__max, 1)
+	: 0;
+    }
+
+  template<typename _Iterator>
+    inline __it_diff_t<_Iterator>
+    __distance_rai(_Iterator __first, _Iterator __last,
+		   __it_diff_t<_Iterator> __max,
+		   std::random_access_iterator_tag)
+    { return std::min(std::distance(__first, __last), __max); }
+
+  template<typename _Iterator>
+    inline __it_diff_t<_Iterator>
+    __distance_rai(_Iterator __first, _Iterator __last,
+		   __it_diff_t<_Iterator> __max)
+    { return __distance_rai(__first, __last, __max,
+			    std::__iterator_category(__first)); }
 
   struct _Identity
   {
@@ -1189,8 +1219,18 @@ namespace __detail
       {
 	__hashtable& __h = _M_conjure_hashtable();
 	auto __last_mgr = __h._M_get_last_node_mgr();
-	__node_gen_type __node_gen(__h);
-	__h._M_insert_range(__first, __last, __last_mgr, __node_gen);
+	if (is_nothrow_copy_constructible<value_type>::value)
+	  {
+	    _AllocNode<__node_alloc_type> __node_gen(__h);
+	    __h._M_insert_range(__first, __last, __last_mgr, __node_gen);
+	  }
+	else
+	  {
+	    _PreAllocNode<__node_alloc_type> __node_gen(
+	      __distance_rai(__first, __last, __h.bucket_count() - __h.size()),
+	      __h);
+	    __h._M_insert_range(__first, __last, __last_mgr, __node_gen);
+	  }
       }
 
   template<typename _Key, typename _Value, typename _Alloc,
@@ -1208,7 +1248,7 @@ namespace __detail
 	using __rehash_guard_t = typename __hashtable::__rehash_guard_t;
 	using __pair_type = std::pair<bool, std::size_t>;
 
-	size_type __n_elt = __detail::__distance_fw(__first, __last);
+	size_type __n_elt = __distance_fw(__first, __last);
 	if (__n_elt == 0)
 	  return;
 
