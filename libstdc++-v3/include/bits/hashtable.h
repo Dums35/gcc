@@ -246,6 +246,49 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       using __rehash_guard_t
 	= __detail::_RehashStateGuard<_RehashPolicy>;
 
+      template<typename _Valuea>
+	struct _NonConstValue
+	{ using type = typename std::remove_const<_Valuea>::type; };
+
+      template<typename _Keya, typename _Valuea>
+	struct _NonConstValue<std::pair<_Keya, _Valuea>>
+	{
+	  using type
+	    = std::pair<typename std::remove_const<_Keya>::type,
+			typename std::remove_const<_Valuea>::type>;
+	};
+
+      using __non_const_value_t
+	= typename _NonConstValue<_Value>::type;
+      using __non_const_alloc_t
+	= __alloc_rebind<_Alloc, __non_const_value_t>;
+      using __non_const_hashtable_t
+	= _Hashtable<_Key,
+		     __non_const_value_t,
+		     __non_const_alloc_t,
+		     _ExtractKey, _Equal, _Hash,
+		     _RangeHash, _Unused, _RehashPolicy, _Traits>;
+
+      template<typename _Iterator>
+	using __it_ref_t
+	  = typename std::iterator_traits<_Iterator>::reference;
+
+      template<typename _Iterator>
+	using __is_constructible_from_ite_ref_t =
+	  std::is_constructible<__non_const_value_t,
+				__it_ref_t<_Iterator>>;
+
+      using __convertible_alloc_t =
+	std::is_convertible<_Alloc, __non_const_alloc_t>;
+
+      template<typename _InputIterator>
+	using __hashtable_intermediate_t
+	  = __conditional_t<__and_<
+	      __convertible_alloc_t,
+	      __is_constructible_from_ite_ref_t<_InputIterator>>::value,
+			    __non_const_hashtable_t,
+			    _Hashtable>;
+
     public:
       typedef _Key						key_type;
       typedef _Value						value_type;
@@ -337,11 +380,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	__node_ptr _M_node;
       };
 
-      template<typename _Ht>
+      template<typename _Ht, typename _Val>
 	static constexpr
 	__conditional_t<std::is_lvalue_reference<_Ht>::value,
-			const value_type&, value_type&&>
-	__fwd_value_for(value_type& __val) noexcept
+			const _Val&, _Val&&>
+	__fwd_value_for(_Val& __val) noexcept
 	{ return std::move(__val); }
 
       // Compile-time diagnostics.
@@ -393,6 +436,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	       typename _RehashPolicya, typename _Traitsa,
 	       bool _Unique_keysa>
 	friend struct __detail::_Equality;
+
+      template<typename _Keya, typename _Valuea, typename _Alloca,
+	       typename _ExtractKeya, typename _Equala,
+	       typename _Hasha, typename _RangeHasha, typename _Unuseda,
+	       typename _RehashPolicya, typename _Traitsa>
+	friend class _Hashtable;
 
       template<typename _NAlloc>
 	friend struct __detail::_PreAllocHashtableNodes;
@@ -674,6 +723,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		 const key_equal& __eql = key_equal(),
 		 const allocator_type& __a = allocator_type());
 
+      template<typename _InputIterator>
+	_Hashtable(_InputIterator __f, _InputIterator __l,
+		   size_type __bkt_count_hint = 0,
+		   const _Hash& __hf = _Hash(),
+		   const key_equal& __eql = key_equal(),
+		   const allocator_type& __a = allocator_type());
+
       // Use delegating constructors.
       _Hashtable(_Hashtable&& __ht)
 	noexcept(_S_nothrow_move())
@@ -693,16 +749,6 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	__enable_default_ctor(_Enable_default_constructor_tag{})
       { }
 
-      template<typename _InputIterator>
-	_Hashtable(_InputIterator __f, _InputIterator __l,
-		   size_type __bkt_count_hint = 0,
-		   const _Hash& __hf = _Hash(),
-		   const key_equal& __eql = key_equal(),
-		   const allocator_type& __a = allocator_type())
-	: _Hashtable(__f, __l, __bkt_count_hint, __hf, __eql, __a,
-		     __unique_keys{})
-	{ }
-
       _Hashtable(initializer_list<value_type> __l,
 		 size_type __bkt_count_hint = 0,
 		 const _Hash& __hf = _Hash(),
@@ -710,7 +756,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		 const allocator_type& __a = allocator_type())
       : _Hashtable(__l.begin(), __l.end(),
 		   __bkt_count_hint == 0 ? __l.size() : __bkt_count_hint,
-		   __hf, __eql, __a, __unique_keys{})
+		   __hf, __eql, __a)
       { }
 
       _Hashtable&
@@ -1560,6 +1606,31 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	   typename _ExtractKey, typename _Equal,
 	   typename _Hash, typename _RangeHash, typename _Unused,
 	   typename _RehashPolicy, typename _Traits>
+    template<typename _InputIterator>
+      _Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal,
+		 _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::
+      _Hashtable(_InputIterator __f, _InputIterator __l,
+		 size_type __bkt_count_hint,
+		 const _Hash& __h, const _Equal& __eq,
+		 const allocator_type& __a)
+      : _Hashtable(__h, __eq, __a)
+      {
+	__hashtable_intermediate_t<_InputIterator>
+	  __ht(__f, __l, __bkt_count_hint,
+	       __h, __eq, __a, __unique_keys{});
+
+	_M_element_count = __ht._M_element_count;
+	const __rehash_state& __saved_state = _M_rehash_policy._M_state();
+	_M_rehash(__ht.bucket_count(), __saved_state);
+
+	__prealloc_hashtable_nodes_gen_t __node_gen(__ht, *this);
+	_M_assign_stable(std::move(__ht), __node_gen);
+      }
+
+  template<typename _Key, typename _Value, typename _Alloc,
+	   typename _ExtractKey, typename _Equal,
+	   typename _Hash, typename _RangeHash, typename _Unused,
+	   typename _RehashPolicy, typename _Traits>
     auto
     _Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal,
 	       _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::
@@ -1718,6 +1789,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		 _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::
       _M_assign_stable(_Ht&& __ht, const _NodeGenerator& __node_gen)
       {
+	using __ht_t = typename std::remove_reference<_Ht>::type;
 	__buckets_ptr __buckets = nullptr;
 	if (!_M_buckets)
 	  _M_buckets = __buckets = _M_allocate_buckets(_M_bucket_count);
@@ -1733,9 +1805,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		if (__ht._M_buckets[__bkt] == nullptr)
 		  continue;
 
-		__node_ptr __ht_n =
-		  static_cast<__node_ptr>(__ht._M_buckets[__bkt]->_M_nxt);
-		__node_ptr __prev_ht_n = __ht_n;
+		auto __ht_n = static_cast<typename __ht_t::__node_ptr>
+		  (__ht._M_buckets[__bkt]->_M_nxt);
+		auto __prev_ht_n = __ht_n;
 		__node_base_ptr __nxt_bkt_n = __bkt < _M_bucket_count - 1
 		  ? __ht._M_buckets[__bkt + 1] : nullptr;
 		do
