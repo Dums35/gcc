@@ -31,377 +31,523 @@
 #define _GLIBCXX_PREDEFINED_OPS_H	1
 
 #include <bits/move.h>
+#include <bits/stl_iterator_base_types.h>
+
+#if __cplusplus >= 201103L
+# include <bits/invoke.h>
+#endif
 
 namespace __gnu_cxx
 {
 namespace __ops
 {
-  struct _Iter_less_iter
+#if __cplusplus >= 201103L
+  struct _Less
   {
-    template<typename _Iterator1, typename _Iterator2>
+    template<typename _Lhs, typename _Rhs>
       _GLIBCXX14_CONSTEXPR
       bool
-      operator()(_Iterator1 __it1, _Iterator2 __it2) const
-      { return *__it1 < *__it2; }
+      operator()(_Lhs&& __lhs, _Rhs&& __rhs) const
+      noexcept( noexcept(__lhs < __rhs) )
+      { return __lhs < __rhs; }
   };
-
-  _GLIBCXX14_CONSTEXPR
-  inline _Iter_less_iter
-  __iter_less_iter()
-  { return _Iter_less_iter(); }
-
-  struct _Iter_less_val
-  {
-#if __cplusplus >= 201103L
-    constexpr _Iter_less_val() = default;
 #else
-    _Iter_less_val() { }
+  template<typename _Ref1, typename _Ref2>
+    struct _LessRefs
+    {
+      bool
+      operator()(_Ref1 __lhs, _Ref2 __rhs) const
+      { return __lhs < __rhs; }
+
+      bool
+      operator()(_Ref2 __lhs, _Ref1 __rhs) const
+      { return __lhs < __rhs; }
+
+      bool
+      operator()(_Ref1 __lhs, _Ref1 __rhs) const
+      { return __lhs < __rhs; }
+
+      bool
+      operator()(_Ref2 __lhs, _Ref2 __rhs) const
+      { return __lhs < __rhs; }
+    };
+
+  template<typename _Ref>
+    struct _LessRefs<_Ref, _Ref>
+    {
+      bool
+      operator()(_Ref __lhs, _Ref __rhs) const
+      { return __lhs < __rhs; }
+    };
+
+  template<typename _Ite1, typename _Ite2>
+    struct _Less
+    : _LessRefs<typename std::iterator_traits<_Ite1>::reference,
+		typename std::iterator_traits<_Ite2>::reference>
+    { };
+
+  template<typename _Ite>
+    struct _LessCRef
+    : _LessRefs<typename std::iterator_traits<_Ite>::reference,
+		const typename std::iterator_traits<_Ite>::value_type&>
+    { };
 #endif
 
-    _GLIBCXX20_CONSTEXPR
-    explicit
-    _Iter_less_val(_Iter_less_iter) { }
-
-    template<typename _Iterator, typename _Value>
-      _GLIBCXX20_CONSTEXPR
-      bool
-      operator()(_Iterator __it, _Value& __val) const
-      { return *__it < __val; }
-  };
-
-  _GLIBCXX20_CONSTEXPR
-  inline _Iter_less_val
-  __iter_less_val()
-  { return _Iter_less_val(); }
-
-  _GLIBCXX20_CONSTEXPR
-  inline _Iter_less_val
-  __iter_comp_val(_Iter_less_iter)
-  { return _Iter_less_val(); }
-
-  struct _Val_less_iter
-  {
 #if __cplusplus >= 201103L
-    constexpr _Val_less_iter() = default;
+  template<typename _Ite1, typename _Ite2>
+    constexpr _Less
+    __less(_Ite1, _Ite2) noexcept
+    { return _Less{}; }
+
+  constexpr _Less
+  __less() noexcept
+  { return _Less{}; }
 #else
-    _Val_less_iter() { }
+  template<typename _Ite1, typename _Ite2>
+    inline _Less<_Ite1, _Ite2>
+    __less(_Ite1, _Ite2)
+    { return _Less<_Ite1, _Ite2>(); }
 #endif
-
-    _GLIBCXX20_CONSTEXPR
-    explicit
-    _Val_less_iter(_Iter_less_iter) { }
-
-    template<typename _Value, typename _Iterator>
-      _GLIBCXX20_CONSTEXPR
-      bool
-      operator()(_Value& __val, _Iterator __it) const
-      { return __val < *__it; }
-  };
-
-  _GLIBCXX20_CONSTEXPR
-  inline _Val_less_iter
-  __val_less_iter()
-  { return _Val_less_iter(); }
-
-  _GLIBCXX20_CONSTEXPR
-  inline _Val_less_iter
-  __val_comp_iter(_Iter_less_iter)
-  { return _Val_less_iter(); }
-
-  struct _Iter_equal_to_iter
-  {
-    template<typename _Iterator1, typename _Iterator2>
-      _GLIBCXX20_CONSTEXPR
-      bool
-      operator()(_Iterator1 __it1, _Iterator2 __it2) const
-      { return *__it1 == *__it2; }
-  };
-
-  _GLIBCXX20_CONSTEXPR
-  inline _Iter_equal_to_iter
-  __iter_equal_to_iter()
-  { return _Iter_equal_to_iter(); }
-
-  struct _Iter_equal_to_val
-  {
-    template<typename _Iterator, typename _Value>
-      _GLIBCXX20_CONSTEXPR
-      bool
-      operator()(_Iterator __it, _Value& __val) const
-      { return *__it == __val; }
-  };
-
-  _GLIBCXX20_CONSTEXPR
-  inline _Iter_equal_to_val
-  __iter_equal_to_val()
-  { return _Iter_equal_to_val(); }
-
-  _GLIBCXX20_CONSTEXPR
-  inline _Iter_equal_to_val
-  __iter_comp_val(_Iter_equal_to_iter)
-  { return _Iter_equal_to_val(); }
-
-  template<typename _Compare>
-    struct _Iter_comp_iter
-    {
-      _Compare _M_comp;
-
-      explicit _GLIBCXX14_CONSTEXPR
-      _Iter_comp_iter(_Compare __comp)
-	: _M_comp(_GLIBCXX_MOVE(__comp))
-      { }
-
-      template<typename _Iterator1, typename _Iterator2>
-        _GLIBCXX14_CONSTEXPR
-        bool
-        operator()(_Iterator1 __it1, _Iterator2 __it2)
-        { return bool(_M_comp(*__it1, *__it2)); }
-    };
-
-  template<typename _Compare>
-    _GLIBCXX14_CONSTEXPR
-    inline _Iter_comp_iter<_Compare>
-    __iter_comp_iter(_Compare __comp)
-    { return _Iter_comp_iter<_Compare>(_GLIBCXX_MOVE(__comp)); }
-
-  template<typename _Compare>
-    struct _Iter_comp_val
-    {
-      _Compare _M_comp;
-
-      _GLIBCXX20_CONSTEXPR
-      explicit
-      _Iter_comp_val(_Compare __comp)
-	: _M_comp(_GLIBCXX_MOVE(__comp))
-      { }
-
-      _GLIBCXX20_CONSTEXPR
-      explicit
-      _Iter_comp_val(const _Iter_comp_iter<_Compare>& __comp)
-	: _M_comp(__comp._M_comp)
-      { }
 
 #if __cplusplus >= 201103L
-      _GLIBCXX20_CONSTEXPR
-      explicit
-      _Iter_comp_val(_Iter_comp_iter<_Compare>&& __comp)
-	: _M_comp(std::move(__comp._M_comp))
-      { }
+  template<typename _Ite>
+    constexpr _Less
+    __less(_Ite) noexcept
+    { return _Less{}; }
+#else
+  template<typename _Ite>
+    inline _LessCRef<_Ite>
+    __less(_Ite)
+    { return _LessCRef<_Ite>(); }
 #endif
-
-      template<typename _Iterator, typename _Value>
-	_GLIBCXX20_CONSTEXPR
-	bool
-	operator()(_Iterator __it, _Value& __val)
-	{ return bool(_M_comp(*__it, __val)); }
-    };
-
-  template<typename _Compare>
-    _GLIBCXX20_CONSTEXPR
-    inline _Iter_comp_val<_Compare>
-    __iter_comp_val(_Compare __comp)
-    { return _Iter_comp_val<_Compare>(_GLIBCXX_MOVE(__comp)); }
-
-  template<typename _Compare>
-    _GLIBCXX20_CONSTEXPR
-    inline _Iter_comp_val<_Compare>
-    __iter_comp_val(_Iter_comp_iter<_Compare> __comp)
-    { return _Iter_comp_val<_Compare>(_GLIBCXX_MOVE(__comp)); }
-
-  template<typename _Compare>
-    struct _Val_comp_iter
-    {
-      _Compare _M_comp;
-
-      _GLIBCXX20_CONSTEXPR
-      explicit
-      _Val_comp_iter(_Compare __comp)
-	: _M_comp(_GLIBCXX_MOVE(__comp))
-      { }
-
-      _GLIBCXX20_CONSTEXPR
-      explicit
-      _Val_comp_iter(const _Iter_comp_iter<_Compare>& __comp)
-	: _M_comp(__comp._M_comp)
-      { }
 
 #if __cplusplus >= 201103L
-      _GLIBCXX20_CONSTEXPR
-      explicit
-      _Val_comp_iter(_Iter_comp_iter<_Compare>&& __comp)
-	: _M_comp(std::move(__comp._M_comp))
-      { }
+  template<typename _Comp, typename _Ite1, typename _Ite2>
+    constexpr _Comp&&
+    __less(_Comp&& __comp, _Ite1, _Ite2) noexcept
+    { return std::forward<_Comp>(__comp); }
+#else
+  template<typename _Comp, typename _Ite1, typename _Ite2>
+    inline _Comp
+    __less(_Comp __comp, _Ite1, _Ite2)
+    { return __comp; }
+
+  template<typename _LessRef1, typename _LessRef2, typename _Ite1, typename _Ite2>
+    inline _Less<_Ite1, _Ite2>
+    __less(const _LessRefs<_LessRef1, _LessRef2>&, _Ite1, _Ite2)
+    { return _Less<_Ite1, _Ite2>(); }
 #endif
 
-      template<typename _Value, typename _Iterator>
-	_GLIBCXX20_CONSTEXPR
-	bool
-	operator()(_Value& __val, _Iterator __it)
-	{ return bool(_M_comp(__val, *__it)); }
+#if __cplusplus < 201103L
+  template<typename _Ite, typename _Val>
+    struct _LessVal : _LessRefs<typename std::iterator_traits<_Ite>::reference,
+			      _Val&>
+    { };
+#endif
+
+#if __cplusplus >= 201103L
+  template<typename _Ite, typename _Val>
+    constexpr _Less
+    __less_val(_Ite, _Val&&) noexcept
+    { return _Less{}; }
+#else
+  template<typename _Ite, typename _Val>
+    inline _LessVal<_Ite, _Val>
+    __less_val(_Ite, _Val&)
+    { return _LessVal<_Ite, _Val>(); }
+#endif
+
+#if __cplusplus >= 201103L
+  template<typename _Comp, typename _Ite, typename _Val>
+    constexpr _Comp&&
+    __less_val(_Comp&& __comp, _Ite, _Val&&) noexcept
+    { return std::forward<_Comp>(__comp); }
+#else
+  template<typename _Comp, typename _Ite, typename _Val>
+    inline _Comp
+    __less_val(_Comp __comp, _Ite, _Val&)
+    { return __comp; }
+
+  template<typename _Ref1, typename _Ref2, typename _Ite, typename _Val>
+    inline _LessVal<_Ite, _Val>
+    __less_val(const _LessRefs<_Ref1, _Ref2>&, _Ite, _Val&)
+    { return _LessVal<_Ite, _Val>(); }
+#endif
+
+#if __cplusplus >= 201103L
+  struct _EqualTo
+  {
+    template<typename _Lhs, typename _Rhs>
+      _GLIBCXX20_CONSTEXPR
+      bool
+      operator()(_Lhs&& __lhs, _Rhs&& __rhs) const
+      noexcept( noexcept(__lhs == __rhs) )
+      { return __lhs == __rhs; }
+  };
+#else
+  template<typename _Ref1, typename _Ref2>
+    struct _EqualToRefs
+    {
+      bool
+      operator()(_Ref1 __lhs, _Ref2 __rhs) const
+      { return __lhs == __rhs; }
+
+      bool
+      operator()(_Ref2 __lhs, _Ref1 __rhs) const
+      { return __lhs == __rhs; }
+
+      bool
+      operator()(_Ref1 __lhs, _Ref1 __rhs) const
+      { return __lhs == __rhs; }
+
+      bool
+      operator()(_Ref2 __lhs, _Ref2 __rhs) const
+      { return __lhs == __rhs; }
     };
 
-  template<typename _Compare>
-    _GLIBCXX20_CONSTEXPR
-    inline _Val_comp_iter<_Compare>
-    __val_comp_iter(_Compare __comp)
-    { return _Val_comp_iter<_Compare>(_GLIBCXX_MOVE(__comp)); }
-
-  template<typename _Compare>
-    _GLIBCXX20_CONSTEXPR
-    inline _Val_comp_iter<_Compare>
-    __val_comp_iter(_Iter_comp_iter<_Compare> __comp)
-    { return _Val_comp_iter<_Compare>(_GLIBCXX_MOVE(__comp)); }
-
-  template<typename _Value>
-    struct _Iter_equals_val
+  template<typename _Ref>
+    struct _EqualToRefs<_Ref, _Ref>
     {
-      _Value& _M_value;
+      bool
+      operator()(_Ref __lhs, _Ref __rhs) const
+      { return __lhs == __rhs; }
+    };
 
-      _GLIBCXX20_CONSTEXPR
-      explicit
-      _Iter_equals_val(_Value& __value)
-	: _M_value(__value)
+  template<typename _Ite1, typename _Ite2>
+    struct _EqualTo
+      : _EqualToRefs<typename std::iterator_traits<_Ite1>::reference,
+		     typename std::iterator_traits<_Ite2>::reference>
+    { };
+#endif
+
+#if __cplusplus >= 201103L
+  template<typename _Ite1, typename _Ite2>
+    constexpr _EqualTo
+    __equal_to(_Ite1, _Ite2) noexcept
+    { return _EqualTo{}; }
+
+  constexpr _EqualTo
+  __equal_to() noexcept
+  { return _EqualTo{}; }
+#else
+  template<typename _Ite1, typename _Ite2>
+    inline _EqualTo<_Ite1, _Ite2>
+    __equal_to(_Ite1, _Ite2)
+    { return _EqualTo<_Ite1, _Ite2>(); }
+#endif
+
+#if __cplusplus >= 201103L
+  template<typename _Ite>
+    constexpr _EqualTo
+    __equal_to(_Ite) noexcept
+    { return _EqualTo{}; }
+#else
+  template<typename _Ite>
+    inline _EqualTo<_Ite, _Ite>
+    __equal_to(_Ite)
+    { return _EqualTo<_Ite, _Ite>(); }
+#endif
+
+#if __cplusplus < 201103L
+  template<typename _Ite, typename _Val>
+    struct _EqualToVal
+      : _EqualToRefs<typename std::iterator_traits<_Ite>::reference, _Val&>
+    { };
+#endif
+
+#if __cplusplus >= 201103L
+  template<typename _Comp, typename _Ite, typename _Val>
+    constexpr _Comp&&
+    __equal_to_val(_Comp&& __comp, _Ite, _Val&&) noexcept
+    { return std::forward<_Comp>(__comp); }
+#else
+  template<typename _Comp, typename _Ite, typename _Val>
+    inline _Comp
+    __equal_to_val(_Comp __comp, _Ite, _Val&)
+    { return __comp; }
+
+  template<typename _Ref1, typename _Ref2, typename _Ite, typename _Val>
+    inline _EqualToVal<_Ite, _Val>
+    __equal_to_val(const _EqualToRefs<_Ref1, _Ref2>&, _Ite, _Val&)
+    { return _EqualToVal<_Ite, _Val>(); }
+#endif
+
+#if __cplusplus >= 201103L
+  template<typename _Val>
+    struct _EqualVal
+    {
+    private:
+      _Val _M_val;
+
+    public:
+      constexpr
+      _EqualVal(_Val __val)
+      : _M_val(__val) { }
+
+      template<typename _Lhs>
+	_GLIBCXX20_CONSTEXPR
+	bool
+	operator()(_Lhs&& __lhs) const
+	noexcept( noexcept(__lhs == _M_val) )
+	{ return __lhs == _M_val; }
+    };
+#else
+  template<typename _Ref, typename _Val>
+    struct _EqualValRef
+    {
+    private:
+      _Val _M_val;
+
+    public:
+      _EqualValRef(_Val __val)
+      : _M_val(__val)
       { }
 
-      template<typename _Iterator>
-	_GLIBCXX20_CONSTEXPR
-	bool
-	operator()(_Iterator __it)
-	{ return *__it == _M_value; }
+      bool
+      operator()(_Ref __lhs) const
+      { return __lhs == _M_val; }
     };
 
-  template<typename _Value>
-    _GLIBCXX20_CONSTEXPR
-    inline _Iter_equals_val<_Value>
-    __iter_equals_val(_Value& __val)
-    { return _Iter_equals_val<_Value>(__val); }
-
-  template<typename _Iterator1>
-    struct _Iter_equals_iter
+  template<typename _Ite, typename _Val>
+    struct _EqualVal
+    : _EqualValRef<typename std::iterator_traits<_Ite>::reference, _Val>
     {
-      _Iterator1 _M_it1;
+      typedef
+      _EqualValRef<typename std::iterator_traits<_Ite>::reference, _Val> _Base;
 
-      _GLIBCXX20_CONSTEXPR
-      explicit
-      _Iter_equals_iter(_Iterator1 __it1)
-	: _M_it1(__it1)
+      _EqualVal(_Val __val)
+      : _Base(__val)
+      { }
+    };
+#endif
+
+#if __cplusplus >= 201103L
+  template<typename _Ite, typename _Val>
+    constexpr _EqualVal<const _Val&>
+    __equal_val(_Ite, const _Val& __val) noexcept
+    {return _EqualVal<const _Val&>(__val);}
+
+  template<typename _Val>
+    constexpr _EqualVal<const _Val&>
+    __equal_val(const _Val& __val) noexcept
+    {return _EqualVal<const _Val&>(__val);}
+#else
+  template<typename _Ite, typename _Val>
+    inline _EqualVal<_Ite, const _Val&>
+    __equal_val(_Ite, const _Val& __val)
+    { return _EqualVal<_Ite, const _Val&>(__val); }
+#endif
+
+#if __cplusplus >= 201103L
+  template<typename _BinaryPred, typename _Val>
+    struct _CompVal
+    {
+      template<typename _BPred>
+	constexpr
+	_CompVal(_BPred&& __pred, _Val __val)
+	: _M_binary_pred(std::forward<_BPred>(__pred))
+	, _M_val(__val)
+	{ }
+
+      _CompVal(const _CompVal&) = default;
+      _CompVal(_CompVal&&) = default;
+      ~_CompVal() = default;
+
+      // Macro to define operator() with given cv-qualifiers ref-qualifiers,
+      // forwarding _M_binary_pred and the function arguments with the same
+      // qualifiers, and deducing the return type and exception-specification.
+# define _GLIBCXX_BINARY_PRED_CALL_OP( _QUALS )				\
+      template<typename _Arg,						\
+	       typename = std::__enable_if_t<std::__is_invocable<	\
+		 _BinaryPred _QUALS, _Arg, _Val>::value>> 	\
+	_GLIBCXX20_CONSTEXPR						\
+	bool								\
+	operator()(_Arg&& __arg) _QUALS					\
+	noexcept(std::__is_nothrow_invocable<				\
+		 _BinaryPred _QUALS, _Arg, _Val>::value)		\
+	{								\
+	  return std::__invoke(						\
+		   std::forward< _BinaryPred _QUALS >(_M_binary_pred),	\
+		   std::forward<_Arg>(__arg), _M_val);			\
+	}								\
+									\
+      template<typename _Arg,						\
+	       typename = std::__enable_if_t<!std::__is_invocable<	\
+		 _BinaryPred _QUALS, _Arg, _Val>::value>>	\
+	void operator()(_Arg&&) _QUALS = delete;
+
+      _GLIBCXX_BINARY_PRED_CALL_OP( & )
+      _GLIBCXX_BINARY_PRED_CALL_OP( const & )
+      _GLIBCXX_BINARY_PRED_CALL_OP( && )
+      _GLIBCXX_BINARY_PRED_CALL_OP( const && )
+# undef _GLIBCXX_BINARY_PRED_CALL_OP
+#else
+  template<typename _BinaryPred, typename _Ite, typename _Val>
+    struct _CompVal
+    {
+      _CompVal(_BinaryPred __pred, _Val __val)
+      : _M_binary_pred(__pred), _M_val(__val)
       { }
 
-      template<typename _Iterator2>
-	_GLIBCXX20_CONSTEXPR
-	bool
-	operator()(_Iterator2 __it2)
-	{ return *__it2 == *_M_it1; }
+      bool
+      operator()(typename std::iterator_traits<_Ite>::reference __lhs)
+      { return bool(_M_binary_pred(__lhs, _M_val)); }
+#endif
+
+    private:
+      _BinaryPred _M_binary_pred;
+      _Val	  _M_val;
     };
 
-  template<typename _Iterator>
-    _GLIBCXX20_CONSTEXPR
-    inline _Iter_equals_iter<_Iterator>
-    __iter_comp_iter(_Iter_equal_to_iter, _Iterator __it)
-    { return _Iter_equals_iter<_Iterator>(__it); }
-
-  template<typename _Predicate>
-    struct _Iter_pred
+#if __cplusplus >= 201103L
+  template<typename _BPred, typename _Ite, typename _Val>
+    _GLIBCXX20_CONSTEXPR inline
+    _CompVal<std::__decay_t<_BPred>, const _Val&>
+    __comp_val(_BPred&& __pred, _Ite, const _Val& __val)
+    noexcept(std::is_nothrow_constructible<std::__decay_t<_BPred>,
+	     _BPred&&>::value)
     {
-      _Predicate _M_pred;
+      return
+	_CompVal<std::__decay_t<_BPred>, const _Val&>
+	(std::forward<_BPred>(__pred), __val);
+    }
+#else
+  template<typename _BPred, typename _Ite, typename _Val>
+    inline _CompVal<_BPred, _Ite, const _Val&>
+    __comp_val(_BPred __pred, _Ite, const _Val& __val)
+    { return _CompVal<_BPred, _Ite, const _Val&>(__pred, __val); }
+#endif
 
-      _GLIBCXX20_CONSTEXPR
-      explicit
-      _Iter_pred(_Predicate __pred)
-	: _M_pred(_GLIBCXX_MOVE(__pred))
-      { }
-
-      template<typename _Iterator>
-	_GLIBCXX20_CONSTEXPR
-	bool
-	operator()(_Iterator __it)
-	{ return bool(_M_pred(*__it)); }
-    };
-
-  template<typename _Predicate>
-    _GLIBCXX20_CONSTEXPR
-    inline _Iter_pred<_Predicate>
-    __pred_iter(_Predicate __pred)
-    { return _Iter_pred<_Predicate>(_GLIBCXX_MOVE(__pred)); }
-
-  template<typename _Compare, typename _Value>
-    struct _Iter_comp_to_val
+#if __cplusplus >= 201103L
+  template<typename _BPred, typename _InIte, typename _Ite>
+    _GLIBCXX20_CONSTEXPR inline
+    _CompVal<std::__decay_t<_BPred>,
+	     typename std::iterator_traits<_Ite>::reference>
+    __equal_ite(_BPred&& __pred, _InIte, _Ite  __ite)
+    noexcept(std::is_nothrow_constructible<std::__decay_t<_BPred>,
+	     _BPred&&>::value)
     {
-      _Compare _M_comp;
-      _Value& _M_value;
-
-      _GLIBCXX20_CONSTEXPR
-      _Iter_comp_to_val(_Compare __comp, _Value& __value)
-	: _M_comp(_GLIBCXX_MOVE(__comp)), _M_value(__value)
-      { }
-
-      template<typename _Iterator>
-	_GLIBCXX20_CONSTEXPR
-	bool
-	operator()(_Iterator __it)
-	{ return bool(_M_comp(*__it, _M_value)); }
-    };
-
-  template<typename _Compare, typename _Value>
-    _Iter_comp_to_val<_Compare, _Value>
-    _GLIBCXX20_CONSTEXPR
-    __iter_comp_val(_Compare __comp, _Value &__val)
-    {
-      return _Iter_comp_to_val<_Compare, _Value>(_GLIBCXX_MOVE(__comp), __val);
+      return
+	_CompVal<std::__decay_t<_BPred>,
+		 typename std::iterator_traits<_Ite>::reference>
+	(std::forward<_BPred>(__pred), *__ite);
     }
 
-  template<typename _Compare, typename _Iterator1>
-    struct _Iter_comp_to_iter
+  template<typename _InIte, typename _Ite>
+    _GLIBCXX20_CONSTEXPR inline
+    _EqualVal<typename std::iterator_traits<_Ite>::reference>
+    __equal_ite(_EqualTo, _InIte, _Ite __ite)
     {
-      _Compare _M_comp;
-      _Iterator1 _M_it1;
-
-      _GLIBCXX20_CONSTEXPR
-      _Iter_comp_to_iter(_Compare __comp, _Iterator1 __it1)
-	: _M_comp(_GLIBCXX_MOVE(__comp)), _M_it1(__it1)
-      { }
-
-      template<typename _Iterator2>
-	_GLIBCXX20_CONSTEXPR
-	bool
-	operator()(_Iterator2 __it2)
-	{ return bool(_M_comp(*__it2, *_M_it1)); }
-    };
-
-  template<typename _Compare, typename _Iterator>
-    _GLIBCXX20_CONSTEXPR
-    inline _Iter_comp_to_iter<_Compare, _Iterator>
-    __iter_comp_iter(_Iter_comp_iter<_Compare> __comp, _Iterator __it)
+      return
+	_EqualVal<typename std::iterator_traits<_Ite>::reference>(*__ite);
+    }
+#else
+  template<typename _BPred, typename _InIte, typename _Ite>
+    inline
+      _CompVal<_BPred, _InIte, typename std::iterator_traits<_Ite>::reference>
+    __equal_ite(_BPred __pred, _InIte, _Ite __ite)
     {
-      return _Iter_comp_to_iter<_Compare, _Iterator>(
-	  _GLIBCXX_MOVE(__comp._M_comp), __it);
+      return
+	_CompVal<_BPred, _InIte, typename std::iterator_traits<_Ite>::reference>
+	(__pred, *__ite);
     }
 
-  template<typename _Predicate>
-    struct _Iter_negate
+  template<typename _Ref1, typename _Ref2, typename _InIte, typename _Ite>
+    inline
+      _EqualVal<_InIte, typename std::iterator_traits<_Ite>::reference>
+    __equal_ite(const _EqualToRefs<_Ref1, _Ref2>&, _InIte, _Ite __ite)
     {
-      _Predicate _M_pred;
-
-      _GLIBCXX20_CONSTEXPR
-      explicit
-      _Iter_negate(_Predicate __pred)
-	: _M_pred(_GLIBCXX_MOVE(__pred))
-      { }
-
-      template<typename _Iterator>
-	_GLIBCXX20_CONSTEXPR
-	bool
-	operator()(_Iterator __it)
-	{ return !bool(_M_pred(*__it)); }
-    };
-
-  template<typename _Predicate>
-    _GLIBCXX20_CONSTEXPR
-    inline _Iter_negate<_Predicate>
-    __negate(_Iter_pred<_Predicate> __pred)
-    { return _Iter_negate<_Predicate>(_GLIBCXX_MOVE(__pred._M_pred)); }
-
+      return
+	_EqualVal<_InIte, typename std::iterator_traits<_Ite>::reference>
+	(*__ite);
+    }
+#endif
 } // namespace __ops
 } // namespace __gnu_cxx
+
+
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
+
+#if __cplusplus >= 201103L
+  /// Generalized negator.
+  template<typename _Fn>
+    class _Not_fn
+    {
+      template<typename _Fn2, typename... _Args>
+	using __inv_res_t = typename __invoke_result<_Fn2, _Args...>::type;
+
+      template<typename _Tp>
+	static decltype(!std::declval<_Tp>())
+	_S_not() noexcept(noexcept(!std::declval<_Tp>()));
+
+    public:
+      template<typename _Fn2>
+	constexpr
+	_Not_fn(_Fn2&& __fn, int)
+	: _M_fn(std::forward<_Fn2>(__fn)) { }
+
+      _Not_fn(const _Not_fn& __fn) = default;
+      _Not_fn(_Not_fn&& __fn) = default;
+      ~_Not_fn() = default;
+
+      // Macro to define operator() with given cv-qualifiers ref-qualifiers,
+      // forwarding _M_fn and the function arguments with the same qualifiers,
+      // and deducing the return type and exception-specification.
+# define _GLIBCXX_NOT_FN_CALL_OP( _QUALS )				\
+      template<typename... _Args,					\
+	       typename = __enable_if_t<__is_invocable<_Fn _QUALS, _Args...>::value>> \
+	_GLIBCXX20_CONSTEXPR						\
+	decltype(_S_not<__inv_res_t<_Fn _QUALS, _Args...>>())		\
+	operator()(_Args&&... __args) _QUALS				\
+	noexcept(__is_nothrow_invocable<_Fn _QUALS, _Args...>::value	\
+	    && noexcept(_S_not<__inv_res_t<_Fn _QUALS, _Args...>>()))	\
+	{								\
+	  return !std::__invoke(std::forward< _Fn _QUALS >(_M_fn),	\
+				std::forward<_Args>(__args)...);	\
+	}								\
+									\
+      template<typename... _Args,					\
+	       typename = __enable_if_t<!__is_invocable<_Fn _QUALS, _Args...>::value>> \
+	void operator()(_Args&&... __args) _QUALS = delete;
+
+      _GLIBCXX_NOT_FN_CALL_OP( & )
+      _GLIBCXX_NOT_FN_CALL_OP( const & )
+      _GLIBCXX_NOT_FN_CALL_OP( && )
+      _GLIBCXX_NOT_FN_CALL_OP( const && )
+# undef _GLIBCXX_NOT_FN_CALL_OP
+#else
+  /// Generalized negator.
+  template<typename _Fn, typename _Ite>
+    class _Not_fn
+    {
+    public:
+      _Not_fn(_Fn __fn)
+      : _M_fn(__fn) { }
+
+      bool
+      operator()(typename std::iterator_traits<_Ite>::reference __arg)
+      { return !bool(_M_fn(__arg)); }
+#endif
+    private:
+      _Fn _M_fn;
+    };
+
+  template<typename _Fn, typename _Ite>
+    inline _GLIBCXX20_CONSTEXPR
+#if __cplusplus >= 201103L
+    _Not_fn<std::__decay_t<_Fn>>
+    __not_fn(_Fn&& __fn, _Ite)
+    noexcept(std::is_nothrow_constructible<std::__decay_t<_Fn>, _Fn&&>::value)
+    { return _Not_fn<std::__decay_t<_Fn>>{std::forward<_Fn>(__fn), 0}; }
+#else
+    _Not_fn<_Fn, _Ite>
+    __not_fn(_Fn __fn, _Ite)
+    { return _Not_fn<_Fn, _Ite>(__fn); }
+#endif
+
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace std
 
 #endif
