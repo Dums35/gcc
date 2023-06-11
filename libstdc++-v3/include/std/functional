@@ -60,6 +60,9 @@
 #if _GLIBCXX_HOSTED
 # include <bits/std_function.h>	// std::function
 #endif
+#if __cplusplus >= 201402L
+# include <bits/predefined_ops.h> // std::_Not_fn
+#endif
 #if __cplusplus >= 201703L
 # if _GLIBCXX_HOSTED
 #  include <unordered_map>
@@ -1119,57 +1122,6 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 #endif // __cpp_lib_bind_back
 
 #if __cplusplus >= 201402L
-  /// Generalized negator.
-  template<typename _Fn>
-    class _Not_fn
-    {
-      template<typename _Fn2, typename... _Args>
-	using __inv_res_t = typename __invoke_result<_Fn2, _Args...>::type;
-
-      template<typename _Tp>
-	static decltype(!std::declval<_Tp>())
-	_S_not() noexcept(noexcept(!std::declval<_Tp>()));
-
-    public:
-      template<typename _Fn2>
-	constexpr
-	_Not_fn(_Fn2&& __fn, int)
-	: _M_fn(std::forward<_Fn2>(__fn)) { }
-
-      _Not_fn(const _Not_fn& __fn) = default;
-      _Not_fn(_Not_fn&& __fn) = default;
-      ~_Not_fn() = default;
-
-      // Macro to define operator() with given cv-qualifiers ref-qualifiers,
-      // forwarding _M_fn and the function arguments with the same qualifiers,
-      // and deducing the return type and exception-specification.
-#define _GLIBCXX_NOT_FN_CALL_OP( _QUALS )				\
-      template<typename... _Args,					\
-	       typename = enable_if_t<__is_invocable<_Fn _QUALS, _Args...>::value>> \
-	_GLIBCXX20_CONSTEXPR						\
-	decltype(_S_not<__inv_res_t<_Fn _QUALS, _Args...>>())		\
-	operator()(_Args&&... __args) _QUALS				\
-	noexcept(__is_nothrow_invocable<_Fn _QUALS, _Args...>::value	\
-	    && noexcept(_S_not<__inv_res_t<_Fn _QUALS, _Args...>>()))	\
-	{								\
-	  return !std::__invoke(std::forward< _Fn _QUALS >(_M_fn),	\
-				std::forward<_Args>(__args)...);	\
-	}								\
-									\
-      template<typename... _Args,					\
-	       typename = enable_if_t<!__is_invocable<_Fn _QUALS, _Args...>::value>> \
-	void operator()(_Args&&... __args) _QUALS = delete;
-
-      _GLIBCXX_NOT_FN_CALL_OP( & )
-      _GLIBCXX_NOT_FN_CALL_OP( const & )
-      _GLIBCXX_NOT_FN_CALL_OP( && )
-      _GLIBCXX_NOT_FN_CALL_OP( const && )
-#undef _GLIBCXX_NOT_FN_CALL_OP
-
-    private:
-      _Fn _M_fn;
-    };
-
   template<typename _Tp, typename _Pred>
     struct __is_byte_like : false_type { };
 

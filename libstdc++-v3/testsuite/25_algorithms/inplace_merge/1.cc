@@ -21,6 +21,7 @@
 // { dg-require-effective-target hosted }
 
 #include <algorithm>
+#include <vector>
 #include <testsuite_hooks.h>
 #include <testsuite_iterators.h>
 #include <testsuite_new_operators.h>
@@ -119,6 +120,17 @@ test4()
     }
 }
 
+bool bs[] = { false, false, true, false, true, true };
+std::vector<bool> v(6);
+
+void
+test5()
+{
+  v.assign(bs, bs + 6);
+  inplace_merge(v.begin(), v.begin() + 3, v.end());
+  VERIFY( !v[0] && !v[1] && !v[2] && v[3] && v[4] && v[5] );
+}
+
 int 
 main()
 {
@@ -129,14 +141,17 @@ main()
   __gnu_test::set_new_limit(sizeof(S) * 4);
   test3();
   test4();
+  test5();
 
   __gnu_test::set_new_limit(sizeof(S));
   test3();
   test4();
+  test5();
 
   __gnu_test::set_new_limit(0);
   test3();
   test4();
+  test5();
 
   return 0;
 }

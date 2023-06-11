@@ -463,7 +463,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
 	template<typename _Arg>
 	  _Link_type
-	  operator()(_GLIBCXX_FWDREF(_Arg) __arg)
+	  operator()(_GLIBCXX_FWDCREF(_Arg) __arg)
 	  {
 	    _Link_type __node = static_cast<_Link_type>(_M_extract());
 	    if (__node)
@@ -525,7 +525,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
 	template<typename _Arg>
 	  _Link_type
-	  operator()(_GLIBCXX_FWDREF(_Arg) __arg) const
+	  operator()(_GLIBCXX_FWDCREF(_Arg) __arg) const
 	  { return _M_t._M_create_node(_GLIBCXX_FORWARD(_Arg, __arg)); }
 
       private:

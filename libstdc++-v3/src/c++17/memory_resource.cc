@@ -26,6 +26,7 @@
 #include <algorithm>			// lower_bound, rotate
 #include <atomic>
 #include <bit>				// has_single_bit, bit_ceil, bit_width
+#include <functional>			// less_equal
 #include <new>
 #include <bits/move.h>			// std::__exchange
 #if ATOMIC_POINTER_LOCK_FREE != 2
