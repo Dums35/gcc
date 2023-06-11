@@ -49,7 +49,7 @@
 #include <bits/stl_function.h> // For less
 #include <ext/numeric_traits.h>
 #include <bits/stl_algobase.h>
-#include <bits/refwrap.h>
+#include <bits/move.h>
 #include <bits/range_access.h>
 #include <bits/basic_string.h>
 #include <bits/basic_string.tcc>
@@ -95,11 +95,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     inline typename basic_string<_CharT, _Traits, _Alloc>::size_type
     erase_if(basic_string<_CharT, _Traits, _Alloc>& __cont, _Predicate __pred)
     {
-      using namespace __gnu_cxx;
       const auto __osz = __cont.size();
       const auto __end = __cont.end();
-      auto __removed = std::__remove_if(__cont.begin(), __end,
-					__ops::__pred_iter(std::ref(__pred)));
+      auto __removed = std::__remove_if
+	(__cont.begin(), __end, std::move(__pred));
       __cont.erase(__removed, __end);
       return __osz - __cont.size();
     }
@@ -112,8 +111,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       using namespace __gnu_cxx;
       const auto __osz = __cont.size();
       const auto __end = __cont.end();
-      auto __removed = std::__remove_if(__cont.begin(), __end,
-					__ops::__iter_equals_val(__value));
+      auto __removed = std::__remove_if
+	(__cont.begin(), __end, __ops::__equal_val(__value));
       __cont.erase(__removed, __end);
       return __osz - __cont.size();
     }
