@@ -74,12 +74,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     _GLIBCXX20_CONSTEXPR
     _Distance
     __is_heap_until(_RandomAccessIterator __first, _Distance __n,
-		    _Compare& __comp)
+		    _GLIBCXX_FWDREF(_Compare) __comp)
     {
       _Distance __parent = 0;
       for (_Distance __child = 1; __child < __n; ++__child)
 	{
-	  if (__comp(__first + __parent, __first + __child))
+	  if (__comp(__first[__parent], __first[__child]))
 	    return __child;
 	  if ((__child & 1) == 0)
 	    ++__parent;
@@ -94,7 +94,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     inline bool
     __is_heap(_RandomAccessIterator __first, _Distance __n)
     {
-      __gnu_cxx::__ops::_Iter_less_iter __comp;
+      __decltype(__gnu_cxx::__ops::__less(__first)) __comp =
+	__gnu_cxx::__ops::__less(__first);
       return std::__is_heap_until(__first, __n, __comp) == __n;
     }
 
@@ -102,11 +103,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	   typename _Distance>
     _GLIBCXX20_CONSTEXPR
     inline bool
-    __is_heap(_RandomAccessIterator __first, _Compare __comp, _Distance __n)
+    __is_heap(_RandomAccessIterator __first, _GLIBCXX_FWDREF(_Compare) __comp,
+	      _Distance __n)
     {
-      typedef __decltype(__comp) _Cmp;
-      __gnu_cxx::__ops::_Iter_comp_iter<_Cmp> __cmp(_GLIBCXX_MOVE(__comp));
-      return std::__is_heap_until(__first, __n, __cmp) == __n;
+      return std::__is_heap_until
+	(__first, __n, _GLIBCXX_FORWARD(_Compare, __comp)) == __n;
     }
 
   template<typename _RandomAccessIterator>
@@ -119,9 +120,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     _GLIBCXX20_CONSTEXPR
     inline bool
     __is_heap(_RandomAccessIterator __first, _RandomAccessIterator __last,
-	      _Compare __comp)
+	      _GLIBCXX_FWDREF(_Compare) __comp)
     {
-      return std::__is_heap(__first, _GLIBCXX_MOVE(__comp),
+      return std::__is_heap(__first, _GLIBCXX_FORWARD(_Compare, __comp),
 			    std::distance(__first, __last));
     }
 
@@ -133,17 +134,22 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     _GLIBCXX20_CONSTEXPR
     void
     __push_heap(_RandomAccessIterator __first,
-		_Distance __holeIndex, _Distance __topIndex, _Tp __value,
-		_Compare& __comp)
+		_Distance __holeIndex, _Distance __topIndex,
+#if __cplusplus >= 201103L
+		_Tp&& __value,
+#else
+		_Tp __value,
+#endif
+		_GLIBCXX_FWDREF(_Compare) __comp)
     {
       _Distance __parent = (__holeIndex - 1) / 2;
-      while (__holeIndex > __topIndex && __comp(__first + __parent, __value))
+      while (__holeIndex > __topIndex && __comp(__first[__parent], __value))
 	{
 	  *(__first + __holeIndex) = _GLIBCXX_MOVE(*(__first + __parent));
 	  __holeIndex = __parent;
 	  __parent = (__holeIndex - 1) / 2;
 	}
-      *(__first + __holeIndex) = _GLIBCXX_MOVE(__value);
+      *(__first + __holeIndex) = _GLIBCXX_FORWARD(_Tp, __value);
     }
 
   /**
@@ -174,8 +180,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_irreflexive(__first, __last);
       __glibcxx_requires_heap(__first, __last - 1);
 
-      __gnu_cxx::__ops::_Iter_less_val __comp;
       _ValueType __value = _GLIBCXX_MOVE(*(__last - 1));
+      __decltype(__gnu_cxx::__ops::__less_val(__first, __value)) __comp =
+	__gnu_cxx::__ops::__less_val(__first, __value);
       std::__push_heap(__first, _DistanceType((__last - __first) - 1),
 		       _DistanceType(0), _GLIBCXX_MOVE(__value), __comp);
     }
@@ -210,11 +217,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
       __glibcxx_requires_heap_pred(__first, __last - 1, __comp);
 
-      __decltype(__gnu_cxx::__ops::__iter_comp_val(_GLIBCXX_MOVE(__comp)))
-	__cmp(_GLIBCXX_MOVE(__comp));
       _ValueType __value = _GLIBCXX_MOVE(*(__last - 1));
       std::__push_heap(__first, _DistanceType((__last - __first) - 1),
-		       _DistanceType(0), _GLIBCXX_MOVE(__value), __cmp);
+		       _DistanceType(0), _GLIBCXX_MOVE(__value),
+		       _GLIBCXX_MOVE(__comp));
     }
 
   template<typename _RandomAccessIterator, typename _Distance,
@@ -222,15 +228,21 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     _GLIBCXX20_CONSTEXPR
     void
     __adjust_heap(_RandomAccessIterator __first, _Distance __holeIndex,
-		  _Distance __len, _Tp __value, _Compare __comp)
+		  _Distance __len,
+#if __cplusplus >= 201103L
+		  _Tp&& __value,
+#else
+		  _Tp __value,
+#endif
+		  _GLIBCXX_FWDREF(_Compare) __comp)
     {
       const _Distance __topIndex = __holeIndex;
       _Distance __secondChild = __holeIndex;
       while (__secondChild < (__len - 1) / 2)
 	{
 	  __secondChild = 2 * (__secondChild + 1);
-	  if (__comp(__first + __secondChild,
-		     __first + (__secondChild - 1)))
+	  if (__comp(__first[__secondChild],
+		     __first[__secondChild - 1]))
 	    __secondChild--;
 	  *(__first + __holeIndex) = _GLIBCXX_MOVE(*(__first + __secondChild));
 	  __holeIndex = __secondChild;
@@ -242,17 +254,20 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 						     + (__secondChild - 1)));
 	  __holeIndex = __secondChild - 1;
 	}
-      __decltype(__gnu_cxx::__ops::__iter_comp_val(_GLIBCXX_MOVE(__comp)))
-	__cmp(_GLIBCXX_MOVE(__comp));
+      __decltype(__gnu_cxx::__ops::__less_val(_GLIBCXX_FORWARD(_Compare, __comp),
+					      __first, __value)) __cmp =
+	__gnu_cxx::__ops::__less_val(_GLIBCXX_FORWARD(_Compare, __comp),
+				     __first, __value);
       std::__push_heap(__first, __holeIndex, __topIndex,
-		       _GLIBCXX_MOVE(__value), __cmp);
+		       _GLIBCXX_FORWARD(_Tp, __value),
+		       _GLIBCXX_FORWARD(_Compare, __cmp));
     }
 
   template<typename _RandomAccessIterator, typename _Compare>
     _GLIBCXX20_CONSTEXPR
     inline void
     __pop_heap(_RandomAccessIterator __first, _RandomAccessIterator __last,
-	       _RandomAccessIterator __result, _Compare& __comp)
+	       _RandomAccessIterator __result, _GLIBCXX_FWDREF(_Compare) __comp)
     {
       typedef typename iterator_traits<_RandomAccessIterator>::value_type
 	_ValueType;
@@ -263,7 +278,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       *__result = _GLIBCXX_MOVE(*__first);
       std::__adjust_heap(__first, _DistanceType(0),
 			 _DistanceType(__last - __first),
-			 _GLIBCXX_MOVE(__value), __comp);
+		_GLIBCXX_MOVE(__value), _GLIBCXX_FORWARD(_Compare, __comp));
     }
 
   /**
@@ -295,7 +310,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       if (__last - __first > 1)
 	{
 	  --__last;
-	  __gnu_cxx::__ops::_Iter_less_iter __comp;
+	  __decltype(__gnu_cxx::__ops::__less(__first)) __comp =
+	    __gnu_cxx::__ops::__less(__first);
 	  std::__pop_heap(__first, __last, __last, __comp);
 	}
     }
@@ -327,10 +343,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
       if (__last - __first > 1)
 	{
-	  typedef __decltype(__comp) _Cmp;
-	  __gnu_cxx::__ops::_Iter_comp_iter<_Cmp> __cmp(_GLIBCXX_MOVE(__comp));
 	  --__last;
-	  std::__pop_heap(__first, __last, __last, __cmp);
+	  std::__pop_heap(__first, __last, __last, _GLIBCXX_MOVE(__comp));
 	}
     }
 
@@ -338,7 +352,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     _GLIBCXX20_CONSTEXPR
     void
     __make_heap(_RandomAccessIterator __first, _RandomAccessIterator __last,
-		_Compare& __comp)
+		_GLIBCXX_FWDREF(_Compare) __comp)
     {
       typedef typename iterator_traits<_RandomAccessIterator>::value_type
 	  _ValueType;
@@ -382,7 +396,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive(__first, __last);
 
-      __gnu_cxx::__ops::_Iter_less_iter __comp;
+      __decltype(__gnu_cxx::__ops::__less(__first)) __comp =
+	__gnu_cxx::__ops::__less(__first);
       std::__make_heap(__first, __last, __comp);
     }
 
@@ -408,16 +423,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
-      typedef __decltype(__comp) _Cmp;
-      __gnu_cxx::__ops::_Iter_comp_iter<_Cmp> __cmp(_GLIBCXX_MOVE(__comp));
-      std::__make_heap(__first, __last, __cmp);
+      std::__make_heap(__first, __last, _GLIBCXX_MOVE(__comp));
     }
 
   template<typename _RandomAccessIterator, typename _Compare>
     _GLIBCXX20_CONSTEXPR
     void
     __sort_heap(_RandomAccessIterator __first, _RandomAccessIterator __last,
-		_Compare& __comp)
+		_GLIBCXX_FWDREF(_Compare) __comp)
     {
       while (__last - __first > 1)
 	{
@@ -448,7 +461,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_irreflexive(__first, __last);
       __glibcxx_requires_heap(__first, __last);
 
-      __gnu_cxx::__ops::_Iter_less_iter __comp;
+      __decltype(__gnu_cxx::__ops::__less(__first)) __comp =
+	__gnu_cxx::__ops::__less(__first);
       std::__sort_heap(__first, __last, __comp);
     }
 
@@ -475,9 +489,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
       __glibcxx_requires_heap_pred(__first, __last, __comp);
 
-      typedef __decltype(__comp) _Cmp;
-      __gnu_cxx::__ops::_Iter_comp_iter<_Cmp> __cmp(_GLIBCXX_MOVE(__comp));
-      std::__sort_heap(__first, __last, __cmp);
+      std::__sort_heap(__first, __last, _GLIBCXX_MOVE(__comp));
     }
 
 #if __cplusplus >= 201103L
@@ -504,9 +516,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive(__first, __last);
 
-      __gnu_cxx::__ops::_Iter_less_iter __comp;
       return __first + 
-	std::__is_heap_until(__first, std::distance(__first, __last), __comp);
+	std::__is_heap_until(__first, std::distance(__first, __last),
+			     __gnu_cxx::__ops::__less());
     }
 
   /**
@@ -532,10 +544,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
-      typedef __decltype(__comp) _Cmp;
-      __gnu_cxx::__ops::_Iter_comp_iter<_Cmp> __cmp(_GLIBCXX_MOVE(__comp));
       return __first
-	+ std::__is_heap_until(__first, std::distance(__first, __last), __cmp);
+	+ std::__is_heap_until(__first, std::distance(__first, __last),
+			       std::move(__comp));
     }
 
   /**
@@ -572,11 +583,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
       const auto __dist = std::distance(__first, __last);
-      typedef __decltype(__comp) _Cmp;
-      __gnu_cxx::__ops::_Iter_comp_iter<_Cmp> __cmp(_GLIBCXX_MOVE(__comp));
-      return std::__is_heap_until(__first, __dist, __cmp) == __dist;
+      return std::__is_heap_until(__first, __dist,
+				  std::move(__comp)) == __dist;
     }
-#endif
+#endif // C++11
 
 _GLIBCXX_END_NAMESPACE_VERSION
 } // namespace
