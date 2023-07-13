@@ -2958,10 +2958,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   template<typename _Iterator>
     struct __is_move_iterator<move_iterator<_Iterator> >
-    {
-      enum { __value = 1 };
-      typedef __true_type __type;
-    };
+    : __truth_type<true>
+    { };
 
   template<typename _Iterator>
     _GLIBCXX20_CONSTEXPR

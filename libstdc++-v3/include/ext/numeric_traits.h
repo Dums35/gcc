@@ -95,18 +95,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 #define _GLIBCXX_INT_N_TRAITS(T, WIDTH)			\
   __extension__						\
   template<> struct __is_integer_nonstrict<T>		\
-  {							\
-    enum { __value = 1 };				\
-    typedef std::__true_type __type;			\
-    enum { __width = WIDTH };				\
-  };							\
+    : __truth_type<true>				\
+    { enum { __width = WIDTH }; };			\
   __extension__						\
   template<> struct __is_integer_nonstrict<unsigned T>	\
-  {							\
-    enum { __value = 1 };				\
-    typedef std::__true_type __type;			\
-    enum { __width = WIDTH };				\
-  };
+    : __truth_type<true>				\
+    { enum { __width = WIDTH }; };
 
   // We need to specify the width for some __intNN types because they
   // have padding bits, e.g. the object representation of __int20 has 32 bits,
