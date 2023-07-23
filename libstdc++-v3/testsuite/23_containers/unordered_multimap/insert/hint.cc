@@ -40,11 +40,12 @@ void test01()
   VERIFY( it2 != m.end() );
   VERIFY( it2 != it1 );
   VERIFY( it2->second == 2 );
-  VERIFY( it2 == std::next(it1) );
+  VERIFY( std::next(it2) == it1 );
 
+  it1 = it2;
   Pair p(0, 1);
   it2 = m.insert(it1, p);
-  VERIFY( it2 == std::next(it1) );
+  VERIFY( std::next(it2) == it1 );
 }
 
 struct hasher
@@ -71,13 +72,13 @@ void test02()
   VERIFY( m.bucket_size(m.bucket(it3->first)) == 1 );
 
   auto it4 = m.insert(it1, Pair(0, 1));
-  VERIFY( it4 == std::next(it1) );
+  VERIFY( std::next(it4) == it1 );
   VERIFY( m.bucket_size(m.bucket(it1->first)) == 3 );
   VERIFY( m.bucket_size(m.bucket(it3->first)) == 1 );
 
   Pair p(1, 1);
   it4 = m.insert(it2, p);
-  VERIFY( it4 == std::next(it2) );
+  VERIFY( std::next(it4) == it2 );
   VERIFY( m.bucket_size(m.bucket(it1->first)) == 4 );
   auto range = m.equal_range(0);
   VERIFY( std::distance(range.first, range.second) == 2 );
@@ -104,11 +105,12 @@ void test03()
   VERIFY( it2 != m.end() );
   VERIFY( it2 != it1 );
   VERIFY( it2->second == 2 );
-  VERIFY( it2 == std::next(it1) );
+  VERIFY( std::next(it2) == it1 );
 
+  it1 = it2;
   Pair p(0, 1);
   it2 = m.emplace_hint(it1, p);
-  VERIFY( it2 == std::next(it1) );
+  VERIFY( std::next(it2) == it1 );
 }
 
 int main()
