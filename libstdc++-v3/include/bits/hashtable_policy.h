@@ -926,8 +926,9 @@ namespace __detail
 	std::tuple<const key_type&>(__k),
 	std::tuple<>()
       };
-      auto __pos
-	= __h->_M_insert_unique_node(__bkt, __code, __node._M_node);
+      auto __last_mgr = __h->_M_get_last_node_mgr();
+      auto __pos =  __h->_M_insert_unique_node(__last_mgr, __bkt, __code,
+					       __node._M_node);
       __node._M_node = nullptr;
       return __pos->second;
     }
@@ -953,8 +954,9 @@ namespace __detail
 	std::forward_as_tuple(std::move(__k)),
 	std::tuple<>()
       };
-      auto __pos
-	= __h->_M_insert_unique_node(__bkt, __code, __node._M_node);
+      auto __last_mgr = __h->_M_get_last_node_mgr();
+      auto __pos = __h->_M_insert_unique_node(__last_mgr, __bkt, __code,
+					      __node._M_node);
       __node._M_node = nullptr;
       return __pos->second;
     }
@@ -1043,13 +1045,14 @@ namespace __detail
       insert(const_iterator __hint, const value_type& __v)
       {
 	__hashtable& __h = _M_conjure_hashtable();
-	__node_gen_type __node_gen(__h);	
-	return __h._M_insert(__hint, __v, __node_gen, __unique_keys{});
+	auto __last_mgr = __h._M_get_last_node_mgr(__hint._M_cur);
+	__node_gen_type __node_gen(__h);
+	return __h._M_insert(__last_mgr, __v, __node_gen, __unique_keys{});
       }
 
       template<typename _KType, typename... _Args>
 	std::pair<iterator, bool>
-	try_emplace(const_iterator, _KType&& __k, _Args&&... __args)
+	try_emplace(const_iterator __hint, _KType&& __k, _Args&&... __args)
 	{
 	  __hashtable& __h = _M_conjure_hashtable();
 	  auto __code = __h._M_hash_code(__k);
@@ -1063,8 +1066,9 @@ namespace __detail
 	    std::forward_as_tuple(std::forward<_KType>(__k)),
 	    std::forward_as_tuple(std::forward<_Args>(__args)...)
 	    };
-	  auto __it
-	    = __h._M_insert_unique_node(__bkt, __code, __node._M_node);
+	  auto __last_mgr = __h._M_get_last_node_mgr(__hint._M_cur);
+	  auto __it = __h._M_insert_unique_node(__last_mgr, __bkt, __code,
+						__node._M_node);
 	  __node._M_node = nullptr;
 	  return { __it, true };
 	}
@@ -1092,8 +1096,9 @@ namespace __detail
 		true_type /* __uks */)
       {
 	__hashtable& __h = _M_conjure_hashtable();
+	auto __last_mgr = __h._M_get_last_node_mgr();
 	__node_gen_type __node_gen(__h);
-	__h._M_insert_range(__first, __last, __node_gen);
+	__h._M_insert_range(__first, __last, __last_mgr, __node_gen);
       }
 
   template<typename _Key, typename _Value, typename _Alloc,
@@ -1116,6 +1121,7 @@ namespace __detail
 	  return;
 
 	__hashtable& __h = _M_conjure_hashtable();
+	auto __last_mgr = __h._M_get_last_node_mgr();
 	__rehash_guard_t __rehash_guard(__h._M_rehash_policy);
 	__pair_type __do_rehash
 	  = __h._M_rehash_policy._M_need_rehash(__h._M_bucket_count,
@@ -1123,11 +1129,11 @@ namespace __detail
 						__n_elt);
 
 	if (__do_rehash.first)
-	  __h._M_rehash(__do_rehash.second, __uks);
+	  __h._M_rehash(__last_mgr, __do_rehash.second, __uks);
 
 	__rehash_guard._M_guarded_obj = nullptr;
 	__node_gen_type __node_gen(__h);
-	__h._M_insert_range(__first, __last, __node_gen);
+	__h._M_insert_range(__first, __last, __last_mgr, __node_gen);
       }
 
   /**
@@ -1181,8 +1187,9 @@ namespace __detail
       insert(const_iterator __hint, value_type&& __v)
       {
 	__hashtable& __h = this->_M_conjure_hashtable();
+	auto __last_mgr = __h._M_get_last_node_mgr(__hint._M_cur);
 	__node_gen_type __node_gen(__h);
-	return __h._M_insert(__hint, std::move(__v), __node_gen,
+	return __h._M_insert(__last_mgr, std::move(__v), __node_gen,
 			     __unique_keys{});
       }
     };
@@ -1232,7 +1239,8 @@ namespace __detail
 	insert(const_iterator __hint, _Pair&& __v)
 	{
 	  __hashtable& __h = this->_M_conjure_hashtable();
-	  return __h._M_emplace(__hint, __unique_keys{},
+	  auto __last_mgr = __h._M_get_last_node_mgr(__hint._M_cur);
+	  return __h._M_emplace(__last_mgr, __unique_keys{},
 				std::forward<_Pair>(__v));
 	}
    };

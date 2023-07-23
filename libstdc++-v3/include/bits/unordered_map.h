@@ -443,12 +443,12 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
       /// Re-insert an extracted node.
       insert_return_type
       insert(node_type&& __nh)
-      { return _M_h._M_reinsert_node(std::move(__nh)); }
+      { return _M_h._M_reinsert_node(cend(), std::move(__nh)); }
 
       /// Re-insert an extracted node.
       iterator
-      insert(const_iterator, node_type&& __nh)
-      { return _M_h._M_reinsert_node(std::move(__nh)).position; }
+      insert(const_iterator __hint, node_type&& __nh)
+      { return _M_h._M_reinsert_node(__hint, std::move(__nh)).position; }
 #endif // C++17
 
 #ifdef __glibcxx_unordered_map_try_emplace // C++ >= 17 && HOSTED

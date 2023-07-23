@@ -108,10 +108,10 @@ main()
   std::unordered_map<int, std::string> uom;
   uom[5] = "three";
   uom[3] = "seven";
-// { dg-final { regexp-test uom {std::(__debug::)?unordered_map with 2 elements = {\[3\] = "seven", \[5\] = "three"}} } }
+// { dg-final { regexp-test uom {std::(__debug::)?unordered_map with 2 elements = {\[5\] = "three", \[3\] = "seven"}} } }
 
   std::unordered_map<int, std::string> &ruom = uom;
-// { dg-final { regexp-test ruom {std::(__debug::)?unordered_map with 2 elements = {\[3\] = "seven", \[5\] = "three"}} } }
+// { dg-final { regexp-test ruom {std::(__debug::)?unordered_map with 2 elements = {\[5\] = "three", \[3\] = "seven"}} } }
 
   std::unordered_multimap<int, std::string> uomm;
   uomm.insert(std::pair<int, std::string> (5, "three"));
