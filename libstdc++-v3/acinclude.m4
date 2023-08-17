@@ -4867,7 +4867,7 @@ dnl
 dnl Control whether the library should define symbols for old and new ABIs.
 dnl This affects definitions of strings, stringstreams and locale facets.
 dnl
-dnl --disable-libstdcxx-dual-abi will use old ABI for all types.
+dnl --disable-libstdcxx-dual-abi will use new ABI for all types.
 dnl
 dnl Defines:
 dnl  _GLIBCXX_USE_DUAL_ABI (always defined, either to 1 or 0)
@@ -4883,7 +4883,7 @@ AC_DEFUN([GLIBCXX_ENABLE_LIBSTDCXX_DUAL_ABI], [
   else
     if test x"$enable_libstdcxx_dual_abi" != xyes; then
       AC_MSG_NOTICE([dual ABI is disabled])
-      default_libstdcxx_abi="gcc4-compatible"
+      default_libstdcxx_abi="new"
     fi
   fi
   GLIBCXX_CONDITIONAL(ENABLE_DUAL_ABI, test $enable_libstdcxx_dual_abi = yes)
@@ -4898,7 +4898,6 @@ dnl Defines:
 dnl  _GLIBCXX_USE_CXX11_ABI (always defined, either to 1 or 0)
 dnl
 AC_DEFUN([GLIBCXX_DEFAULT_ABI], [
-  if test x$enable_libstdcxx_dual_abi = xyes; then
   AC_MSG_CHECKING([for default std::string ABI to use])
   AC_ARG_WITH([default-libstdcxx-abi],
     AS_HELP_STRING([--with-default-libstdcxx-abi],
@@ -4912,7 +4911,6 @@ AC_DEFUN([GLIBCXX_DEFAULT_ABI], [
      ],
     [default_libstdcxx_abi="new"])
   AC_MSG_RESULT(${default_libstdcxx_abi})
-  fi
   if test $default_libstdcxx_abi = "new"; then
     glibcxx_cxx11_abi=1
     glibcxx_cxx98_abi=0
