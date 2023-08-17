@@ -51307,13 +51307,12 @@ $as_echo "$as_me: dual ABI is disabled" >&6;}
     if test x"$enable_libstdcxx_dual_abi" != xyes; then
       { $as_echo "$as_me:${as_lineno-$LINENO}: dual ABI is disabled" >&5
 $as_echo "$as_me: dual ABI is disabled" >&6;}
-      default_libstdcxx_abi="gcc4-compatible"
+      default_libstdcxx_abi="new"
     fi
   fi
 
 
 
-  if test x$enable_libstdcxx_dual_abi = xyes; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for default std::string ABI to use" >&5
 $as_echo_n "checking for default std::string ABI to use... " >&6; }
 
@@ -51332,7 +51331,6 @@ fi
 
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: ${default_libstdcxx_abi}" >&5
 $as_echo "${default_libstdcxx_abi}" >&6; }
-  fi
   if test $default_libstdcxx_abi = "new"; then
     glibcxx_cxx11_abi=1
     glibcxx_cxx98_abi=0
