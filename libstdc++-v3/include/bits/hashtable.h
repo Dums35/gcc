@@ -619,7 +619,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	if (_M_bucket_count < __l_bkt_count)
 	  rehash(__l_bkt_count);
 
-	this->_M_insert_range(__l.begin(), __l.end(), __roan, __unique_keys{});
+	_M_insert_range(__l.begin(), __l.end(), __roan);
 	return *this;
       }
 
@@ -987,6 +987,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	_M_insert(const_iterator, _Arg&&,
 		  _NodeGenerator&, false_type __uks);
 
+      template<typename _InputIterator, typename _NodeGenerator>
+	void
+	_M_insert_range(_InputIterator __first, _InputIterator __last,
+			_NodeGenerator&);
+
       size_type
       _M_erase(true_type __uks, const key_type&);
 
@@ -1302,8 +1307,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  }
 
 	__alloc_node_gen_t __node_gen(*this);
-	for (; __f != __l; ++__f)
-	  _M_insert(*__f, __node_gen, __uks);
+	_M_insert_range(__f, __l, __node_gen);
       }
 
   template<typename _Key, typename _Value, typename _Alloc,
@@ -2369,6 +2373,21 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  = _M_insert_multi_node(__res.first, __res.second, __node._M_node);
 	__node._M_node = nullptr;
 	return __pos;
+      }
+
+  template<typename _Key, typename _Value, typename _Alloc,
+	   typename _ExtractKey, typename _Equal,
+	   typename _Hash, typename _RangeHash, typename _Unused,
+	   typename _RehashPolicy, typename _Traits>
+    template<typename _InputIterator, typename _NodeGenerator>
+      void
+      _Hashtable<_Key, _Value, _Alloc, _ExtractKey, _Equal,
+		 _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::
+      _M_insert_range(_InputIterator __first, _InputIterator __last,
+		      _NodeGenerator& __node_gen)
+      {
+	for (; __first != __last; ++__first)
+	  _M_insert(*__first, __node_gen, __unique_keys{});
       }
 
   template<typename _Key, typename _Value, typename _Alloc,
