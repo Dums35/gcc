@@ -19,4 +19,4 @@ task<std::vector<int>>
 baz ()
 {
   co_return std::vector<int>();
-} // { dg-error {use of deleted function 'task<T>::task\(const task<T>&\) \[with T = std::vector<int>\]'} }
+} // { dg-error {use of deleted function 'task<T>::task\(const task<T>&\) \[with T = std::(__9::)?vector<int>\]'} }
