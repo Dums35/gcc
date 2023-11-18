@@ -150,15 +150,19 @@ namespace __detail
   template<typename _ExKey>
     struct _NodeBuilder;
 
+  template<typename _NodeGtor>
+    using __node_ptr_t = typename _NodeGtor::__node_ptr;
+
   template<>
     struct _NodeBuilder<_Select1st>
     {
       template<typename _Kt, typename _Arg, typename _NodeGenerator>
-	static auto
-	_S_build(_Kt&& __k, _Arg&& __arg, _NodeGenerator& __node_gen)
-	-> typename _NodeGenerator::__node_ptr
+	static __node_ptr_t<_NodeGenerator>
+	_S_build(__node_ptr_t<_NodeGenerator> __hint,
+		 _Kt&& __k, _Arg&& __arg, _NodeGenerator& __node_gen)
 	{
-	  return __node_gen(std::forward<_Kt>(__k),
+	  return __node_gen(__hint,
+			    std::forward<_Kt>(__k),
 			    std::forward<_Arg>(__arg).second);
 	}
     };
@@ -167,10 +171,10 @@ namespace __detail
     struct _NodeBuilder<_Identity>
     {
       template<typename _Kt, typename _Arg, typename _NodeGenerator>
-	static auto
-	_S_build(_Kt&& __k, _Arg&&, _NodeGenerator& __node_gen)
-	-> typename _NodeGenerator::__node_ptr
-	{ return __node_gen(std::forward<_Kt>(__k)); }
+	static __node_ptr_t<_NodeGenerator>
+	_S_build(__node_ptr_t<_NodeGenerator> __hint,
+		 _Kt&& __k, _Arg&&, _NodeGenerator& __node_gen)
+	{ return __node_gen(__hint, std::forward<_Kt>(__k)); }
     };
 
   template<typename _HashtableAlloc, typename _NodePtr>
@@ -205,6 +209,7 @@ namespace __detail
 
       _ReuseOrAllocNode(__node_ptr __nodes, __hashtable_alloc& __h)
       : _M_nodes(__nodes), _M_h(__h) { }
+
       _ReuseOrAllocNode(const _ReuseOrAllocNode&) = delete;
 
       ~_ReuseOrAllocNode()
@@ -212,10 +217,11 @@ namespace __detail
 
       template<typename... _Args>
 	__node_ptr
-	operator()(_Args&&... __args)
+	operator()(__node_ptr __hint, _Args&&... __args)
 	{
 	  if (!_M_nodes)
-	    return _M_h._M_allocate_node(std::forward<_Args>(__args)...);
+	    return _M_h._M_allocate_node(__hint,
+					 std::forward<_Args>(__args)...);
 
 	  __node_ptr __node = _M_nodes;
 	  _M_nodes = _M_nodes->_M_next();
@@ -250,8 +256,8 @@ namespace __detail
 
       template<typename... _Args>
 	__node_ptr
-	operator()(_Args&&... __args) const
-	{ return _M_h._M_allocate_node(std::forward<_Args>(__args)...); }
+	operator()(__node_ptr __hint, _Args&&... __args) const
+	{ return _M_h._M_allocate_node(__hint, std::forward<_Args>(__args)...); }
 
     private:
       __hashtable_alloc& _M_h;
@@ -922,6 +928,7 @@ namespace __detail
 
       typename __hashtable::_Scoped_node __node {
 	__h,
+	__h->_M_get_alloc_hint(__bkt),
 	std::piecewise_construct,
 	std::tuple<const key_type&>(__k),
 	std::tuple<>()
@@ -950,6 +957,7 @@ namespace __detail
 
       typename __hashtable::_Scoped_node __node {
 	__h,
+	__h->_M_get_alloc_hint(__bkt),
 	std::piecewise_construct,
 	std::forward_as_tuple(std::move(__k)),
 	std::tuple<>()
@@ -1061,7 +1069,7 @@ namespace __detail
 	    return { iterator(__node), false };
 
 	  typename __hashtable::_Scoped_node __node {
-	    &__h,
+	    &__h, __hint._M_cur,
 	    std::piecewise_construct,
 	    std::forward_as_tuple(std::forward<_KType>(__k)),
 	    std::forward_as_tuple(std::forward<_Args>(__args)...)
@@ -2066,7 +2074,7 @@ namespace __detail
       // Allocate a node and construct an element within it.
       template<typename... _Args>
 	__node_ptr
-	_M_allocate_node(_Args&&... __args);
+	_M_allocate_node(__node_ptr __hint, _Args&&... __args);
 
       // Destroy the element within a node and deallocate the node.
       void
@@ -2093,11 +2101,21 @@ namespace __detail
   template<typename _NodeAlloc>
     template<typename... _Args>
       auto
-      _Hashtable_alloc<_NodeAlloc>::_M_allocate_node(_Args&&... __args)
+      _Hashtable_alloc<_NodeAlloc>::_M_allocate_node(__node_ptr __hint,
+						     _Args&&... __args)
       -> __node_ptr
       {
 	auto& __alloc = _M_node_allocator();
-	auto __nptr = __node_alloc_traits::allocate(__alloc, 1);
+	typename __node_alloc_traits::pointer __nptr;
+	if (__hint)
+	  {
+	    typedef typename __node_alloc_traits::const_pointer _CPtr;
+	    auto __hptr = std::pointer_traits<_CPtr>::pointer_to(*__hint);
+	    __nptr = __node_alloc_traits::allocate(__alloc, 1, __hptr);
+	  }
+	else
+	  __nptr = __node_alloc_traits::allocate(__alloc, 1);
+
 	__node_ptr __n = std::__to_address(__nptr);
 	__try
 	  {
