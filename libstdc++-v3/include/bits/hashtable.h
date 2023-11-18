@@ -310,9 +310,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
 	// Allocate a node and construct an element within it.
 	template<typename... _Args>
-	  _Scoped_node(__hashtable_alloc* __h, _Args&&... __args)
+	  _Scoped_node(__hashtable_alloc* __h,
+		       __node_ptr __hint, _Args&&... __args)
 	  : _M_h(__h),
-	    _M_node(__h->_M_allocate_node(std::forward<_Args>(__args)...))
+	    _M_node(__h->_M_allocate_node(__hint,
+					  std::forward<_Args>(__args)...))
 	  { }
 
 	// Destroy element and deallocate node.
@@ -928,6 +930,18 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    return static_cast<__node_ptr>(__before_n->_M_nxt);
 	  return nullptr;
 	}
+
+      // Gets a hint after which a node should be allocated given a bucket.
+      __node_ptr
+      _M_get_alloc_hint(size_type __bkt, __node_ptr __hint = nullptr) const
+      {
+	__node_base_ptr __node;
+	if (__node = _M_buckets[__bkt])
+	  return __node != &_M_before_begin
+	    ? static_cast<__node_ptr>(__node) : __hint;
+
+	return __hint;
+      }
 
       // Insert a node at the beginning of a bucket.
       static void
@@ -1610,7 +1624,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    // _M_before_begin.
 	    __node_ptr __ht_n = __ht._M_begin();
 	    __node_ptr __this_n
-	      = __node_gen(__fwd_value_for<_Ht>(__ht_n->_M_v()));
+	      = __node_gen(nullptr, __fwd_value_for<_Ht>(__ht_n->_M_v()));
 	    this->_M_copy_code(*__this_n, *__ht_n);
 	    _M_update_bbegin(__this_n);
 
@@ -1618,7 +1632,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    __node_ptr __prev_n = __this_n;
 	    for (__ht_n = __ht_n->_M_next(); __ht_n; __ht_n = __ht_n->_M_next())
 	      {
-		__this_n = __node_gen(__fwd_value_for<_Ht>(__ht_n->_M_v()));
+		__this_n
+		  = __node_gen(__prev_n, __fwd_value_for<_Ht>(__ht_n->_M_v()));
 		__prev_n->_M_nxt = __this_n;
 		this->_M_copy_code(*__this_n, *__ht_n);
 		size_type __bkt = _M_bucket_index(*__this_n);
@@ -2333,7 +2348,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       -> pair<iterator, bool>
       {
 	// First build the node to get access to the hash code
-	_Scoped_node __node { this, std::forward<_Args>(__args)...  };
+	_Scoped_node __node
+	{ this, __hint_policy._M_hint(), std::forward<_Args>(__args)...  };
 	const key_type& __k = _ExtractKey{}(__node._M_node->_M_v());
 	const size_type __size = size();
 	if (__size <= __small_size_threshold())
@@ -2374,7 +2390,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       -> iterator
       {
 	// First build the node to get its key and hash code.
-	_Scoped_node __node { this, std::forward<_Args>(__args)...  };
+	_Scoped_node __node {
+	  this, __hint_policy._M_get_hint(), std::forward<_Args>(__args)...  };
 
 	const key_type& __k = _ExtractKey{}(__node._M_node->_M_v());
 	auto __pos = _M_insert_multi_node(__last_mgr, __k, __node._M_node);
@@ -2404,6 +2421,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	{
 	  _M_rehash(__last_mgr, __do_rehash.second, true_type{});
 	  __bkt = _M_bucket_index(__code);
+	  __hint_policy._M_reset();
 	}
 
       __rehash_guard._M_guarded_obj = nullptr;
@@ -2490,9 +2508,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	// equivalent elements' relative positions.
 	_M_insert_bucket_begin(__last_mgr, __bkt, __node);
 
-      ++_M_element_count;
-      return iterator(__node);
-    }
+	++_M_element_count;
+	return iterator(__node);
+      }
 
   // Insert v if no element with its key is already present.
   template<typename _Key, typename _Value, typename _Alloc,
@@ -2527,9 +2545,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    return { iterator(__node), false };
 
 	_Scoped_node __node {
-	  __node_builder_t::_S_build(std::forward<_Kt>(__k),
-				     std::forward<_Arg>(__v),
-				     __node_gen),
+	  __node_builder_t::_S_build(
+	    _M_get_alloc_hint(__bkt, __hint_policy._M_get_hint()),
+	    std::forward<_Kt>(__k),
+	    std::forward<_Arg>(__v),
+	    __node_gen),
 	  this
 	};
 
@@ -2553,7 +2573,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       -> iterator
       {
 	// First allocate new node so that we don't do anything if it throws.
-	_Scoped_node __node { __node_gen(std::forward<_Arg>(__v)), this };
+	_Scoped_node __node {
+	  __node_gen(__hint_policy._M_get_hint(), std::forward<_Arg>(__v)),
+	  this };
 
 	auto __pos = _M_insert_multi_node(
 	  __last_mgr, _ExtractKey{}(__node._M_node->_M_v()), __node._M_node);
