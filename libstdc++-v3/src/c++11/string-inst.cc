@@ -35,6 +35,12 @@
 # define _GLIBCXX_USE_CXX11_ABI 1
 #endif
 
+#if _GLIBCXX_USE_CXX11_ABI
+# define _GLIBCXX_BUILD_CXX11_ABI 1
+#else
+# define _GLIBCXX_BUILD_CXX11_ABI 0
+#endif
+
 // Prevent the basic_string(const _CharT*, const _Alloc&) and
 // basic_string(size_type, _CharT, const _Alloc&) constructors from being
 // replaced by constrained function templates, so that we instantiate the
@@ -48,8 +54,27 @@
 // Instantiation configuration.
 #ifndef C
 # define C char
+# define C_is_char 1
 #endif
 
+#if _GLIBCXX_USE_DUAL_ABI || _GLIBCXX_USE_CXX11_ABI
+#include <stdexcept>
+
+#if _GLIBCXX_USE_CXX11_ABI
+# include <bits/cow_string.h>
+typedef std::__detail::basic_string<C, std::char_traits<C>,
+				    std::allocator<C>> cowstr;
+#else
+typedef std::string cowstr;
+#endif
+
+static_assert(sizeof(std::__cow_string) == sizeof(cowstr),
+	      "sizeof(std::string) has changed");
+static_assert(alignof(std::__cow_string) == alignof(cowstr),
+	      "alignof(std::string) has changed");
+#endif // _GLIBCXX_USE_DUAL_ABI || _GLIBCXX_USE_CXX11_ABI
+
+#if _GLIBCXX_USE_CXX11_ABI == _GLIBCXX_BUILD_CXX11_ABI
 namespace std _GLIBCXX_VISIBILITY(default)
 {
 _GLIBCXX_BEGIN_NAMESPACE_VERSION
@@ -121,3 +146,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
 _GLIBCXX_END_NAMESPACE_VERSION
 } // namespace
+#elif _GLIBCXX_USE_CXX11_ABI && C_is_char // ! _GLIBCXX_USE_DUAL_ABI
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+  namespace __detail
+  {
+    template basic_string<C, std::char_traits<C>, std::allocator<C>>::size_type
+      basic_string<C, std::char_traits<C>, std::allocator<C>>::_Rep::_S_empty_rep_storage[];
+  }
+}
+#endif

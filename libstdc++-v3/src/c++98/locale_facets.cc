@@ -128,6 +128,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     return __test;
   }
 
+#if ! _GLIBCXX_USE_CXX11_ABI
   bool
   __verify_grouping(const char* __grouping, size_t __grouping_size,
 		    const string& __grouping_tmp) throw()
@@ -136,6 +137,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
                                   __grouping_tmp.c_str(),
                                   __grouping_tmp.size());
   }
+#endif
 
   namespace
   {
