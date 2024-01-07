@@ -32,13 +32,14 @@
 #ifndef _COW_STRING_H
 #define _COW_STRING_H 1
 
-#if ! _GLIBCXX_USE_CXX11_ABI
-
 #include <ext/atomicity.h> // _Atomic_word, __is_single_threaded
 
 namespace std _GLIBCXX_VISIBILITY(default)
 {
-_GLIBCXX_BEGIN_NAMESPACE_VERSION
+#if _GLIBCXX_USE_CXX11_ABI
+  namespace __detail
+  {
+#endif
 
   /**
    *  @class basic_string basic_string.h <string>
@@ -3525,6 +3526,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _M_rep()->_M_set_length_and_sharable(__new_size);
     }
 
+
   template<typename _CharT, typename _Traits, typename _Alloc>
     void
     basic_string<_CharT, _Traits, _Alloc>::
@@ -3807,8 +3809,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     }
 #endif // C++11
 
-
-_GLIBCXX_END_NAMESPACE_VERSION
+#if _GLIBCXX_USE_CXX11_ABI
+} // namespace __detail
+#endif
 } // namespace std
-#endif  // ! _GLIBCXX_USE_CXX11_ABI
 #endif  // _COW_STRING_H
