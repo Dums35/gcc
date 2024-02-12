@@ -334,10 +334,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_valid_range(__first1, __last1);
       __glibcxx_requires_valid_range(__first2, __last2);
 
-      return std::__find_end(__first1, __last1, __first2, __last2,
-			     std::__iterator_category(__first1),
-			     std::__iterator_category(__first2),
-			     __gnu_cxx::__ops::__iter_equal_to_iter());
+      return std::__niter_wrap
+	(__first1, std::__find_end
+	 (std::__niter_base(__first1), std::__niter_base(__last1),
+	  std::__niter_base(__first2), std::__niter_base(__last2),
+	  std::__iterator_category(__first1),
+	  std::__iterator_category(__first2),
+	  __gnu_cxx::__ops::__iter_equal_to_iter()));
     }
 
   /**
@@ -385,10 +388,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_valid_range(__first1, __last1);
       __glibcxx_requires_valid_range(__first2, __last2);
 
-      return std::__find_end(__first1, __last1, __first2, __last2,
-			     std::__iterator_category(__first1),
-			     std::__iterator_category(__first2),
-			     __gnu_cxx::__ops::__iter_comp_iter(__comp));
+      return std::__niter_wrap
+	(__first1, std::__find_end
+	 (std::__niter_base(__first1), std::__niter_base(__last1),
+	  std::__niter_base(__first2), std::__niter_base(__last2),
+	  std::__iterator_category(__first1),
+	  std::__iterator_category(__first2),
+	  __gnu_cxx::__ops::__iter_comp_iter(__comp)));
     }
 
 #if __cplusplus >= 201103L
@@ -468,8 +474,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_function_requires(_UnaryPredicateConcept<_Predicate,
 	      typename iterator_traits<_InputIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
-      return std::__find_if_not(__first, __last,
-				__gnu_cxx::__ops::__pred_iter(__pred));
+      return std::__niter_wrap
+	(__first, std::__find_if_not
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__pred_iter(__pred)));
     }
 
   /**
@@ -521,23 +529,25 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       typedef typename iterator_traits<_ForwardIterator>::difference_type
 	_DistanceType;
 
-      _DistanceType __len = std::distance(__first, __last);
+      auto __first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      _DistanceType __len = std::distance(__first_base, __last_base);
 
       while (__len > 0)
 	{
 	  _DistanceType __half = __len >> 1;
-	  _ForwardIterator __middle = __first;
+	  auto __middle = __first_base;
 	  std::advance(__middle, __half);
 	  if (__pred(*__middle))
 	    {
-	      __first = __middle;
-	      ++__first;
+	      __first_base = __middle;
+	      ++__first_base;
 	      __len = __len - __half - 1;
 	    }
 	  else
 	    __len = __half;
 	}
-      return __first;
+      return std::__niter_wrap(__first, __first_base);
     }
 #endif
 
@@ -585,8 +595,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    typename iterator_traits<_InputIterator>::value_type, _Tp>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__remove_copy_if(__first, __last, __result,
-	__gnu_cxx::__ops::__iter_equals_val(__value));
+      return std::__remove_copy_if
+	(std::__niter_base(__first), std::__niter_base(__last), __result,
+	 __gnu_cxx::__ops::__iter_equals_val(__value));
     }
 
   /**
@@ -619,8 +630,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    typename iterator_traits<_InputIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__remove_copy_if(__first, __last, __result,
-				   __gnu_cxx::__ops::__pred_iter(__pred));
+      return std::__remove_copy_if
+	(std::__niter_base(__first), std::__niter_base(__last), __result,
+	 __gnu_cxx::__ops::__pred_iter(__pred));
     }
 
 #if __cplusplus >= 201103L
@@ -654,12 +666,15 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    typename iterator_traits<_InputIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      for (; __first != __last; ++__first)
-	if (__pred(*__first))
+      auto __first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      for (; __first_base != __last_base; ++__first_base)
+	if (__pred(*__first_base))
 	  {
-	    *__result = *__first;
+	    *__result = *__first_base;
 	    ++__result;
 	  }
+
       return __result;
     }
 
@@ -748,16 +763,18 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_function_requires(_UnaryPredicateConcept<_Predicate,
 	    typename iterator_traits<_InputIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
-      
-      for (; __first != __last; ++__first)
-	if (__pred(*__first))
+
+      auto __first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      for (; __first_base != __last_base; ++__first_base)
+	if (__pred(*__first_base))
 	  {
-	    *__out_true = *__first;
+	    *__out_true = *__first_base;
 	    ++__out_true;
 	  }
 	else
 	  {
-	    *__out_false = *__first;
+	    *__out_false = *__first_base;
 	    ++__out_false;
 	  }
 
@@ -795,8 +812,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    typename iterator_traits<_ForwardIterator>::value_type, _Tp>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__remove_if(__first, __last,
-		__gnu_cxx::__ops::__iter_equals_val(__value));
+      return std::__niter_wrap
+	(__first, std::__remove_if
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__iter_equals_val(__value)));
     }
 
   /**
@@ -829,8 +848,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    typename iterator_traits<_ForwardIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__remove_if(__first, __last,
-			      __gnu_cxx::__ops::__pred_iter(__pred));
+      return std::__niter_wrap
+	(__first, std::__remove_if
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__pred_iter(__pred)));
     }
 
   template<typename _ForwardIterator, typename _BinaryPredicate>
@@ -897,8 +918,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		     typename iterator_traits<_ForwardIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__unique(__first, __last,
-			   __gnu_cxx::__ops::__iter_equal_to_iter());
+      return std::__niter_wrap
+	(__first, std::__unique
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__iter_equal_to_iter()));
     }
 
   /**
@@ -930,8 +953,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		typename iterator_traits<_ForwardIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__unique(__first, __last,
-			   __gnu_cxx::__ops::__iter_comp_iter(__binary_pred));
+      return std::__niter_wrap
+	(__first, std::__unique
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__iter_comp_iter(__binary_pred)));
     }
 
   /**
@@ -1086,7 +1111,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_function_requires(_Mutable_BidirectionalIteratorConcept<
 				  _BidirectionalIterator>)
       __glibcxx_requires_valid_range(__first, __last);
-      std::__reverse(__first, __last, std::__iterator_category(__first));
+      std::__reverse(std::__niter_base(__first), std::__niter_base(__last),
+		     std::__iterator_category(__first));
     }
 
   /**
@@ -1118,10 +1144,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		typename iterator_traits<_BidirectionalIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      while (__first != __last)
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      while (__first_base != __last_base)
 	{
-	  --__last;
-	  *__result = *__last;
+	  --__last_base;
+	  *__result = *__last_base;
 	  ++__result;
 	}
       return __result;
@@ -1354,8 +1383,10 @@ _GLIBCXX_BEGIN_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_valid_range(__first, __middle);
       __glibcxx_requires_valid_range(__middle, __last);
 
-      return std::__rotate(__first, __middle, __last,
-			   std::__iterator_category(__first));
+      return std::__niter_wrap
+	(__first, std::__rotate
+	 (std::__niter_base(__first), std::__niter_base(__middle),
+	  std::__niter_base(__last), std::__iterator_category(__first)));
     }
 
 _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
@@ -1393,8 +1424,9 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_valid_range(__first, __middle);
       __glibcxx_requires_valid_range(__middle, __last);
 
-      return std::copy(__first, __middle,
-		       std::copy(__middle, __last, __result));
+      return std::copy
+	(std::__niter_base(__first), std::__niter_base(__middle), std::copy
+	 (std::__niter_base(__middle), std::__niter_base(__last), __result));
     }
 
   /// This is a helper function...
@@ -1575,8 +1607,10 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
 	    typename iterator_traits<_ForwardIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__stable_partition(__first, __last,
-				     __gnu_cxx::__ops::__pred_iter(__pred));
+      return std::__niter_wrap
+	(__first, std::__stable_partition
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__pred_iter(__pred)));
     }
 #endif // HOSTED
 
@@ -1681,9 +1715,11 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_irreflexive(__first, __last);
       __glibcxx_requires_valid_range(__result_first, __result_last);
 
-      return std::__partial_sort_copy(__first, __last,
-				      __result_first, __result_last,
-				      __gnu_cxx::__ops::__iter_less_iter());
+      return std::__niter_wrap
+	(__result_first, std::__partial_sort_copy
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  std::__niter_base(__result_first), std::__niter_base(__result_last),
+	  __gnu_cxx::__ops::__iter_less_iter()));
     }
 
   /**
@@ -1736,9 +1772,11 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
       __glibcxx_requires_valid_range(__result_first, __result_last);
 
-      return std::__partial_sort_copy(__first, __last,
-				      __result_first, __result_last,
-				__gnu_cxx::__ops::__iter_comp_iter(__comp));
+      return std::__niter_wrap
+	(__result_first, std::__partial_sort_copy
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  std::__niter_base(__result_first), std::__niter_base(__result_last),
+	  __gnu_cxx::__ops::__iter_comp_iter(__comp)));
     }
 
   /// @cond undocumented
@@ -2948,7 +2986,8 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_irreflexive(__first, __last);
 
       return std::__next_permutation
-	(__first, __last, __gnu_cxx::__ops::__iter_less_iter());
+	(std::__niter_base(__first), std::__niter_base(__last),
+	 __gnu_cxx::__ops::__iter_less_iter());
     }
 
   /**
@@ -2982,7 +3021,8 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
       return std::__next_permutation
-	(__first, __last, __gnu_cxx::__ops::__iter_comp_iter(__comp));
+	(std::__niter_base(__first), std::__niter_base(__last),
+	 __gnu_cxx::__ops::__iter_comp_iter(__comp));
     }
 
   template<typename _BidirectionalIterator, typename _Compare>
@@ -3050,8 +3090,9 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive(__first, __last);
 
-      return std::__prev_permutation(__first, __last,
-				     __gnu_cxx::__ops::__iter_less_iter());
+      return std::__prev_permutation
+	(std::__niter_base(__first), std::__niter_base(__last),
+	 __gnu_cxx::__ops::__iter_less_iter());
     }
 
   /**
@@ -3084,8 +3125,9 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
-      return std::__prev_permutation(__first, __last,
-				__gnu_cxx::__ops::__iter_comp_iter(__comp));
+      return std::__prev_permutation
+	(std::__niter_base(__first), std::__niter_base(__last),
+	 __gnu_cxx::__ops::__iter_comp_iter(__comp));
     }
 
   // replace
@@ -3136,9 +3178,9 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
 	    typename iterator_traits<_InputIterator>::value_type, _Tp>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__replace_copy_if(__first, __last, __result,
-			__gnu_cxx::__ops::__iter_equals_val(__old_value),
-					      __new_value);
+      return std::__replace_copy_if
+	(std::__niter_base(__first), std::__niter_base(__last), __result,
+	 __gnu_cxx::__ops::__iter_equals_val(__old_value), __new_value);
     }
 
   /**
@@ -3172,9 +3214,9 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
 	    typename iterator_traits<_InputIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__replace_copy_if(__first, __last, __result,
-				__gnu_cxx::__ops::__pred_iter(__pred),
-					      __new_value);
+      return std::__replace_copy_if
+	(std::__niter_base(__first), std::__niter_base(__last), __result,
+	 __gnu_cxx::__ops::__pred_iter(__pred), __new_value);
     }
 
 #if __cplusplus >= 201103L
@@ -3243,8 +3285,10 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive(__first, __last);
 
-      return std::__is_sorted_until(__first, __last,
-				    __gnu_cxx::__ops::__iter_less_iter());
+      return std::__niter_wrap
+	(__first, std::__is_sorted_until
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__iter_less_iter()));
     }
 
   /**
@@ -3270,8 +3314,10 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
-      return std::__is_sorted_until(__first, __last,
-				    __gnu_cxx::__ops::__iter_comp_iter(__comp));
+      return std::__niter_wrap
+	(__first, std::__is_sorted_until
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__iter_comp_iter(__comp)));
     }
 
   /**
@@ -3395,8 +3441,12 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive(__first, __last);
 
-      return std::__minmax_element(__first, __last,
-				   __gnu_cxx::__ops::__iter_less_iter());
+      auto __pair = std::__minmax_element
+	(std::__niter_base(__first), std::__niter_base(__last),
+	 __gnu_cxx::__ops::__iter_less_iter());
+      return {
+	std::__niter_wrap(__first, __pair.first),
+	std::__niter_wrap(__first, __pair.second) };
     }
 
   /**
@@ -3425,8 +3475,12 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
-      return std::__minmax_element(__first, __last,
-				   __gnu_cxx::__ops::__iter_comp_iter(__comp));
+      auto __pair = std::__minmax_element
+	(std::__niter_base(__first), std::__niter_base(__last),
+	 __gnu_cxx::__ops::__iter_comp_iter(__comp));
+      return {
+	std::__niter_wrap(__first, __pair.first),
+	std::__niter_wrap(__first,__pair.second) };
     }
 
   template<typename _Tp>
@@ -3482,8 +3536,9 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
 	    typename iterator_traits<_ForwardIterator2>::value_type>)
       __glibcxx_requires_valid_range(__first1, __last1);
 
-      return std::__is_permutation(__first1, __last1, __first2,
-				   __gnu_cxx::__ops::__iter_comp_iter(__pred));
+      return std::__is_permutation
+	(std::__niter_base(__first1), std::__niter_base(__last1), __first2,
+	 __gnu_cxx::__ops::__iter_comp_iter(__pred));
     }
 
 #if __cplusplus > 201103L
@@ -3571,9 +3626,10 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_valid_range(__first1, __last1);
       __glibcxx_requires_valid_range(__first2, __last2);
 
-      return
-	std::__is_permutation(__first1, __last1, __first2, __last2,
-			      __gnu_cxx::__ops::__iter_equal_to_iter());
+      return std::__is_permutation
+	(std::__niter_base(__first1), std::__niter_base(__last1),
+	 std::__niter_base(__first2), std::__niter_base(__last2),
+	 __gnu_cxx::__ops::__iter_equal_to_iter());
     }
 
   /**
@@ -3601,8 +3657,10 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
       __glibcxx_requires_valid_range(__first1, __last1);
       __glibcxx_requires_valid_range(__first2, __last2);
 
-      return std::__is_permutation(__first1, __last1, __first2, __last2,
-				   __gnu_cxx::__ops::__iter_comp_iter(__pred));
+      return std::__is_permutation
+	(std::__niter_base(__first1), std::__niter_base(__last1),
+	 std::__niter_base(__first2), std::__niter_base(__last2),
+	 __gnu_cxx::__ops::__iter_comp_iter(__pred));
     }
 #endif // C++14
 
@@ -3701,7 +3759,9 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
 	    _RandomAccessIterator>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      if (__first == __last)
+      auto __first_base = std::__niter_base(__first);
+      auto __last_base = std::__niter_base(__last);
+      if (__first_base == __last_base)
 	return;
 
       typedef typename iterator_traits<_RandomAccessIterator>::difference_type
@@ -3717,12 +3777,12 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
 	__uc_type;
 
       const __uc_type __urngrange = __g.max() - __g.min();
-      const __uc_type __urange = __uc_type(__last - __first);
+      const __uc_type __urange = __uc_type(__last_base - __first_base);
 
       if (__urngrange / __urange >= __urange)
         // I.e. (__urngrange >= __urange * __urange) but without wrap issues.
       {
-	_RandomAccessIterator __i = __first + 1;
+	auto __i = __first_base + 1;
 
 	// Since we know the range isn't empty, an even number of elements
 	// means an uneven number of elements /to swap/, in which case we
@@ -3731,22 +3791,22 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
 	if ((__urange % 2) == 0)
 	{
 	  __distr_type __d{0, 1};
-	  std::iter_swap(__i++, __first + __d(__g));
+	  std::iter_swap(__i++, __first_base + __d(__g));
 	}
 
 	// Now we know that __last - __i is even, so we do the rest in pairs,
 	// using a single distribution invocation to produce swap positions
 	// for two successive elements at a time:
 
-	while (__i != __last)
+	while (__i != __last_base)
 	{
-	  const __uc_type __swap_range = __uc_type(__i - __first) + 1;
+	  const __uc_type __swap_range = __uc_type(__i - __first_base) + 1;
 
 	  const pair<__uc_type, __uc_type> __pospos =
 	    __gen_two_uniform_ints(__swap_range, __swap_range + 1, __g);
 
-	  std::iter_swap(__i++, __first + __pospos.first);
-	  std::iter_swap(__i++, __first + __pospos.second);
+	  std::iter_swap(__i++, __first_base + __pospos.first);
+	  std::iter_swap(__i++, __first_base + __pospos.second);
 	}
 
 	return;
@@ -3754,8 +3814,11 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
 
       __distr_type __d;
 
-      for (_RandomAccessIterator __i = __first + 1; __i != __last; ++__i)
-	std::iter_swap(__i, __first + __d(__g, __p_type(0, __i - __first)));
+      for (auto __i = __first_base + 1; __i != __last_base; ++__i)
+	{
+	  std::iter_swap
+	    (__i, __first_base + __d(__g, __p_type(0, __i - __first_base)));
+	}
     }
 #endif // C++11
 
@@ -3781,8 +3844,11 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       // concept requirements
       __glibcxx_function_requires(_InputIteratorConcept<_InputIterator>)
       __glibcxx_requires_valid_range(__first, __last);
-      for (; __first != __last; ++__first)
-	__f(*__first);
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      for (; __first_base != __last_base; ++__first_base)
+	__f(*__first_base);
       return __f; // N.B. [alg.foreach] says std::move(f) but it's redundant.
     }
 
@@ -3846,8 +3912,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_function_requires(_EqualOpConcept<
 		typename iterator_traits<_InputIterator>::value_type, _Tp>)
       __glibcxx_requires_valid_range(__first, __last);
-      return std::__find_if(__first, __last,
-			    __gnu_cxx::__ops::__iter_equals_val(__val));
+      return std::__niter_wrap
+	(__first, std::__find_if
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__iter_equals_val(__val)));
     }
 
   /**
@@ -3872,8 +3940,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	      typename iterator_traits<_InputIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__find_if(__first, __last,
-			    __gnu_cxx::__ops::__pred_iter(__pred));
+      return std::__niter_wrap
+	(__first, std::__find_if
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__pred_iter(__pred)));
     }
 
   /**
@@ -3907,10 +3977,17 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__first1, __last1);
       __glibcxx_requires_valid_range(__first2, __last2);
 
-      for (; __first1 != __last1; ++__first1)
-	for (_ForwardIterator __iter = __first2; __iter != __last2; ++__iter)
-	  if (*__first1 == *__iter)
-	    return __first1;
+      __decltype(std::__niter_base(__first1))
+	__first1_base(std::__niter_base(__first1)),
+	__last1_base(std::__niter_base(__last1));
+      __decltype(std::__niter_base(__first2))
+	__first2_base(std::__niter_base(__first2)),
+	__last2_base(std::__niter_base(__last2));
+      for (; __first1_base != __last1_base; ++__first1_base)
+	for (__decltype(__first2_base) __iter = __first2_base;
+	     __iter != __last2_base; ++__iter)
+	  if (*__first1_base == *__iter)
+	    return std::__niter_wrap(__first1, __first1_base);
       return __last1;
     }
 
@@ -3950,10 +4027,17 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__first1, __last1);
       __glibcxx_requires_valid_range(__first2, __last2);
 
-      for (; __first1 != __last1; ++__first1)
-	for (_ForwardIterator __iter = __first2; __iter != __last2; ++__iter)
-	  if (__comp(*__first1, *__iter))
-	    return __first1;
+      __decltype(std::__niter_base(__first1))
+	__first1_base(std::__niter_base(__first1)),
+	__last1_base(std::__niter_base(__last1));
+      __decltype(std::__niter_base(__first2))
+	__first2_base(std::__niter_base(__first2)),
+	__last2_base(std::__niter_base(__last2));
+      for (; __first1_base != __last1_base; ++__first1_base)
+	for (__decltype(__first2_base) __iter = __first2_base;
+	     __iter != __last2_base; ++__iter)
+	  if (__comp(*__first1_base, *__iter))
+	    return std::__niter_wrap(__first1, __first1_base);
       return __last1;
     }
 
@@ -3977,8 +4061,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    typename iterator_traits<_ForwardIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__adjacent_find(__first, __last,
-				  __gnu_cxx::__ops::__iter_equal_to_iter());
+      return std::__niter_wrap
+	(__first, std::__adjacent_find
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__iter_equal_to_iter()));
     }
 
   /**
@@ -4005,8 +4091,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    typename iterator_traits<_ForwardIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__adjacent_find(__first, __last,
-			__gnu_cxx::__ops::__iter_comp_iter(__binary_pred));
+      return std::__niter_wrap
+	(__first, std::__adjacent_find
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__iter_comp_iter(__binary_pred)));
     }
 
   /**
@@ -4029,8 +4117,9 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    typename iterator_traits<_InputIterator>::value_type, _Tp>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__count_if(__first, __last,
-			     __gnu_cxx::__ops::__iter_equals_val(__value));
+      return std::__count_if
+	(std::__niter_base(__first), std::__niter_base(__last),
+	 __gnu_cxx::__ops::__iter_equals_val(__value));
     }
 
   /**
@@ -4053,8 +4142,9 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    typename iterator_traits<_InputIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__count_if(__first, __last,
-			     __gnu_cxx::__ops::__pred_iter(__pred));
+      return std::__count_if
+	(std::__niter_base(__first), std::__niter_base(__last),
+	 __gnu_cxx::__ops::__pred_iter(__pred));
     }
 
   /**
@@ -4098,8 +4188,11 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__first1, __last1);
       __glibcxx_requires_valid_range(__first2, __last2);
 
-      return std::__search(__first1, __last1, __first2, __last2,
-			   __gnu_cxx::__ops::__iter_equal_to_iter());
+      return std::__niter_wrap
+	(__first1, std::__search
+	 (std::__niter_base(__first1), std::__niter_base(__last1),
+	  std::__niter_base(__first2), std::__niter_base(__last2),
+	  __gnu_cxx::__ops::__iter_equal_to_iter()));
     }
 
   /**
@@ -4129,8 +4222,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    typename iterator_traits<_ForwardIterator>::value_type, _Tp>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__search_n(__first, __last, __count,
-			     __gnu_cxx::__ops::__iter_equals_val(__val));
+      return std::__niter_wrap
+	(__first, std::__search_n
+	 (std::__niter_base(__first), std::__niter_base(__last), __count,
+	  __gnu_cxx::__ops::__iter_equals_val(__val)));
     }
 
 
@@ -4165,8 +4260,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    typename iterator_traits<_ForwardIterator>::value_type, _Tp>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__search_n(__first, __last, __count,
-		__gnu_cxx::__ops::__iter_comp_val(__binary_pred, __val));
+      return std::__niter_wrap
+	(__first, std::__search_n
+	 (std::__niter_base(__first), std::__niter_base(__last), __count,
+	  __gnu_cxx::__ops::__iter_comp_val(__binary_pred, __val)));
     }
 
 #if __cplusplus >= 201703L
@@ -4215,8 +4312,11 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    __typeof__(__unary_op(*__first))>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      for (; __first != __last; ++__first, (void)++__result)
-	*__result = __unary_op(*__first);
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      for (; __first_base != __last_base; ++__first_base, (void)++__result)
+	*__result = __unary_op(*__first_base);
       return __result;
     }
 
@@ -4255,8 +4355,12 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    __typeof__(__binary_op(*__first1,*__first2))>)
       __glibcxx_requires_valid_range(__first1, __last1);
 
-      for (; __first1 != __last1; ++__first1, (void)++__first2, ++__result)
-	*__result = __binary_op(*__first1, *__first2);
+      __decltype(std::__niter_base(__first1))
+	__first1_base(std::__niter_base(__first1)),
+	__last1_base(std::__niter_base(__last1));
+      for (; __first1_base != __last1_base;
+	   ++__first1_base, (void)++__first2, ++__result)
+	*__result = __binary_op(*__first1_base, *__first2);
       return __result;
     }
 
@@ -4288,9 +4392,12 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    typename iterator_traits<_ForwardIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      for (; __first != __last; ++__first)
-	if (*__first == __old_value)
-	  *__first = __new_value;
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      for (; __first_base != __last_base; ++__first_base)
+	if (*__first_base == __old_value)
+	  *__first_base = __new_value;
     }
 
   /**
@@ -4321,9 +4428,12 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    typename iterator_traits<_ForwardIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      for (; __first != __last; ++__first)
-	if (__pred(*__first))
-	  *__first = __new_value;
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      for (; __first_base != __last_base; ++__first_base)
+	if (__pred(*__first_base))
+	  *__first_base = __new_value;
     }
 
   /**
@@ -4350,8 +4460,11 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    typename iterator_traits<_ForwardIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      for (; __first != __last; ++__first)
-	*__first = __gen();
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      for (; __first_base != __last_base; ++__first_base)
+	*__first_base = __gen();
     }
 
   /**
@@ -4420,11 +4533,14 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    typename iterator_traits<_InputIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      if (__first == __last)
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      if (__first_base == __last_base)
 	return __result;
-      return std::__unique_copy(__first, __last, __result,
+      return std::__unique_copy(__first_base, __last_base, __result,
 				__gnu_cxx::__ops::__iter_equal_to_iter(),
-				std::__iterator_category(__first),
+				std::__iterator_category(__first_base),
 				std::__iterator_category(__result));
     }
 
@@ -4460,11 +4576,14 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    typename iterator_traits<_InputIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      if (__first == __last)
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      if (__first_base == __last_base)
 	return __result;
-      return std::__unique_copy(__first, __last, __result,
+      return std::__unique_copy(__first_base, __last_base, __result,
 			__gnu_cxx::__ops::__iter_comp_iter(__binary_pred),
-				std::__iterator_category(__first),
+				std::__iterator_category(__first_base),
 				std::__iterator_category(__result));
     }
 
@@ -4495,12 +4614,16 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    _RandomAccessIterator>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      if (__first != __last)
-	for (_RandomAccessIterator __i = __first + 1; __i != __last; ++__i)
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      if (__first_base != __last_base)
+	for (__decltype(__first_base) __i = __first_base + 1;
+	     __i != __last_base; ++__i)
 	  {
 	    // XXX rand() % N is not uniformly distributed
-	    _RandomAccessIterator __j = __first
-					+ std::rand() % ((__i - __first) + 1);
+	    __decltype(__first_base) __j
+	      = __first_base + std::rand() % ((__i - __first_base) + 1);
 	    if (__i != __j)
 	      std::iter_swap(__i, __j);
 	  }
@@ -4539,11 +4662,15 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    _RandomAccessIterator>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      if (__first == __last)
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      if (__first_base == __last_base)
 	return;
-      for (_RandomAccessIterator __i = __first + 1; __i != __last; ++__i)
+      for (__decltype(__first_base) __i = __first_base + 1;
+	   __i != __last_base; ++__i)
 	{
-	  _RandomAccessIterator __j = __first + __rand((__i - __first) + 1);
+	  __decltype(__first_base) __j = __first_base + __rand((__i - __first) + 1);
 	  if (__i != __j)
 	    std::iter_swap(__i, __j);
 	}
@@ -4579,8 +4706,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
 	    typename iterator_traits<_ForwardIterator>::value_type>)
       __glibcxx_requires_valid_range(__first, __last);
 
-      return std::__partition(__first, __last, __pred,
-			      std::__iterator_category(__first));
+      return std::__niter_wrap
+	(__first, std::__partition
+	 (std::__niter_base(__first), std::__niter_base(__last), __pred,
+	  std::__iterator_category(__first)));
     }
 
 
@@ -4617,8 +4746,9 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__middle, __last);
       __glibcxx_requires_irreflexive(__first, __last);
 
-      std::__partial_sort(__first, __middle, __last,
-			  __gnu_cxx::__ops::__iter_less_iter());
+      std::__partial_sort
+	(std::__niter_base(__first), std::__niter_base(__middle),
+	 std::__niter_base(__last), __gnu_cxx::__ops::__iter_less_iter());
     }
 
   /**
@@ -4658,8 +4788,9 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__middle, __last);
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
-      std::__partial_sort(__first, __middle, __last,
-			  __gnu_cxx::__ops::__iter_comp_iter(__comp));
+      std::__partial_sort
+	(std::__niter_base(__first), std::__niter_base(__middle),
+	 std::__niter_base(__last), __gnu_cxx::__ops::__iter_comp_iter(__comp));
     }
 
   /**
@@ -4695,9 +4826,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       if (__first == __last || __nth == __last)
 	return;
 
-      std::__introselect(__first, __nth, __last,
-			 std::__lg(__last - __first) * 2,
-			 __gnu_cxx::__ops::__iter_less_iter());
+      std::__introselect
+	(std::__niter_base(__first), std::__niter_base(__nth),
+	 std::__niter_base(__last), std::__lg(__last - __first) * 2,
+	 __gnu_cxx::__ops::__iter_less_iter());
     }
 
   /**
@@ -4736,9 +4868,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       if (__first == __last || __nth == __last)
 	return;
 
-      std::__introselect(__first, __nth, __last,
-			 std::__lg(__last - __first) * 2,
-			 __gnu_cxx::__ops::__iter_comp_iter(__comp));
+      std::__introselect
+	(std::__niter_base(__first), std::__niter_base(__nth),
+	 std::__niter_base(__last), std::__lg(__last - __first) * 2,
+	 __gnu_cxx::__ops::__iter_comp_iter(__comp));
     }
 
   /**
@@ -4768,7 +4901,8 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive(__first, __last);
 
-      std::__sort(__first, __last, __gnu_cxx::__ops::__iter_less_iter());
+      std::__sort(std::__niter_base(__first), std::__niter_base(__last),
+		  __gnu_cxx::__ops::__iter_less_iter());
     }
 
   /**
@@ -4801,7 +4935,8 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
-      std::__sort(__first, __last, __gnu_cxx::__ops::__iter_comp_iter(__comp));
+      std::__sort(std::__niter_base(__first), std::__niter_base(__last),
+		  __gnu_cxx::__ops::__iter_comp_iter(__comp));
     }
 
   template<typename _InputIterator1, typename _InputIterator2,
@@ -4990,8 +5125,9 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive(__first, __last);
 
-      _GLIBCXX_STD_A::__stable_sort(__first, __last,
-				    __gnu_cxx::__ops::__iter_less_iter());
+      _GLIBCXX_STD_A::__stable_sort
+	(std::__niter_base(__first), std::__niter_base(__last),
+	 __gnu_cxx::__ops::__iter_less_iter());
     }
 
   /**
@@ -5026,8 +5162,9 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
-      _GLIBCXX_STD_A::__stable_sort(__first, __last,
-				    __gnu_cxx::__ops::__iter_comp_iter(__comp));
+      _GLIBCXX_STD_A::__stable_sort
+	(std::__niter_base(__first), std::__niter_base(__last),
+	 __gnu_cxx::__ops::__iter_comp_iter(__comp));
     }
 
   template<typename _InputIterator1, typename _InputIterator2,
@@ -5582,8 +5719,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive(__first, __last);
 
-      return _GLIBCXX_STD_A::__min_element(__first, __last,
-				__gnu_cxx::__ops::__iter_less_iter());
+      return std::__niter_wrap
+	(__first, _GLIBCXX_STD_A::__min_element
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__iter_less_iter()));
     }
 
   /**
@@ -5609,8 +5748,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
-      return _GLIBCXX_STD_A::__min_element(__first, __last,
-				__gnu_cxx::__ops::__iter_comp_iter(__comp));
+      return std::__niter_wrap
+	(__first, _GLIBCXX_STD_A::__min_element
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__iter_comp_iter(__comp)));
     }
 
   template<typename _ForwardIterator, typename _Compare>
@@ -5646,8 +5787,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive(__first, __last);
 
-      return _GLIBCXX_STD_A::__max_element(__first, __last,
-				__gnu_cxx::__ops::__iter_less_iter());
+      return std::__niter_wrap
+	(__first, _GLIBCXX_STD_A::__max_element
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__iter_less_iter()));
     }
 
   /**
@@ -5673,8 +5816,10 @@ _GLIBCXX_BEGIN_NAMESPACE_ALGO
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
-      return _GLIBCXX_STD_A::__max_element(__first, __last,
-				__gnu_cxx::__ops::__iter_comp_iter(__comp));
+      return std::__niter_wrap
+	(__first, _GLIBCXX_STD_A::__max_element
+	 (std::__niter_base(__first), std::__niter_base(__last),
+	  __gnu_cxx::__ops::__iter_comp_iter(__comp)));
     }
 
 #if __cplusplus >= 201103L
