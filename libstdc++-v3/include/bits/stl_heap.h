@@ -180,11 +180,15 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_irreflexive(__first, __last);
       __glibcxx_requires_heap(__first, __last - 1);
 
-      _ValueType __value = _GLIBCXX_MOVE(*(__last - 1));
-      __decltype(__gnu_cxx::__ops::__less_val(__first, __value)) __comp =
-	__gnu_cxx::__ops::__less_val(__first, __value);
-      std::__push_heap(__first, _DistanceType((__last - __first) - 1),
-		       _DistanceType(0), _GLIBCXX_MOVE(__value), __comp);
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      _ValueType __value = _GLIBCXX_MOVE(*(__last_base - 1));
+      __decltype(__gnu_cxx::__ops::__less_val(__first_base, __value)) __comp =
+	__gnu_cxx::__ops::__less_val(__first_base, __value);
+      std::__push_heap
+	(__first_base, _DistanceType((__last_base - __first_base) - 1),
+	 _DistanceType(0), _GLIBCXX_MOVE(__value), __comp);
     }
 
   /**
@@ -217,10 +221,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
       __glibcxx_requires_heap_pred(__first, __last - 1, __comp);
 
-      _ValueType __value = _GLIBCXX_MOVE(*(__last - 1));
-      std::__push_heap(__first, _DistanceType((__last - __first) - 1),
-		       _DistanceType(0), _GLIBCXX_MOVE(__value),
-		       _GLIBCXX_MOVE(__comp));
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      _ValueType __value = _GLIBCXX_MOVE(*(__last_base - 1));
+      std::__push_heap
+	(__first_base, _DistanceType((__last_base - __first_base) - 1),
+	 _DistanceType(0), _GLIBCXX_MOVE(__value), _GLIBCXX_MOVE(__comp));
     }
 
   template<typename _RandomAccessIterator, typename _Distance,
@@ -307,12 +314,15 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_irreflexive(__first, __last);
       __glibcxx_requires_heap(__first, __last);
 
-      if (__last - __first > 1)
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      if (__last_base - __first_base > 1)
 	{
-	  --__last;
-	  __decltype(__gnu_cxx::__ops::__less(__first)) __comp =
-	    __gnu_cxx::__ops::__less(__first);
-	  std::__pop_heap(__first, __last, __last, __comp);
+	  --__last_base;
+	  __decltype(__gnu_cxx::__ops::__less(__first_base)) __comp =
+	    __gnu_cxx::__ops::__less(__first_base);
+	  std::__pop_heap(__first_base, __last_base, __last_base, __comp);
 	}
     }
 
@@ -341,10 +351,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_non_empty_range(__first, __last);
       __glibcxx_requires_heap_pred(__first, __last, __comp);
 
-      if (__last - __first > 1)
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      if (__last_base - __first_base > 1)
 	{
-	  --__last;
-	  std::__pop_heap(__first, __last, __last, _GLIBCXX_MOVE(__comp));
+	  --__last_base;
+	  std::__pop_heap(__first_base, __last_base, __last_base,
+			  _GLIBCXX_MOVE(__comp));
 	}
     }
 
@@ -396,9 +410,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive(__first, __last);
 
-      __decltype(__gnu_cxx::__ops::__less(__first)) __comp =
-	__gnu_cxx::__ops::__less(__first);
-      std::__make_heap(__first, __last, __comp);
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      __decltype(__gnu_cxx::__ops::__less(__first_base)) __comp =
+	__gnu_cxx::__ops::__less(__first_base);
+      std::__make_heap(__first_base, __last_base, __comp);
     }
 
   /**
@@ -423,7 +440,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
-      std::__make_heap(__first, __last, _GLIBCXX_MOVE(__comp));
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      std::__make_heap(__first_base, __last_base, _GLIBCXX_MOVE(__comp));
     }
 
   template<typename _RandomAccessIterator, typename _Compare>
@@ -461,9 +481,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_irreflexive(__first, __last);
       __glibcxx_requires_heap(__first, __last);
 
-      __decltype(__gnu_cxx::__ops::__less(__first)) __comp =
-	__gnu_cxx::__ops::__less(__first);
-      std::__sort_heap(__first, __last, __comp);
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      __decltype(__gnu_cxx::__ops::__less(__first_base)) __comp =
+	__gnu_cxx::__ops::__less(__first_base);
+      std::__sort_heap(__first_base, __last_base, __comp);
     }
 
   /**
@@ -489,7 +512,10 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
       __glibcxx_requires_heap_pred(__first, __last, __comp);
 
-      std::__sort_heap(__first, __last, _GLIBCXX_MOVE(__comp));
+      __decltype(std::__niter_base(__first))
+	__first_base(std::__niter_base(__first)),
+	__last_base(std::__niter_base(__last));
+      std::__sort_heap(__first_base, __last_base, _GLIBCXX_MOVE(__comp));
     }
 
 #if __cplusplus >= 201103L
@@ -516,9 +542,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive(__first, __last);
 
-      return __first + 
-	std::__is_heap_until(__first, std::distance(__first, __last),
-			     __gnu_cxx::__ops::__less());
+      return __first + std::__is_heap_until
+	(std::__niter_base(__first), std::distance(__first, __last),
+	 __gnu_cxx::__ops::__less());
     }
 
   /**
@@ -544,9 +570,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_valid_range(__first, __last);
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
-      return __first
-	+ std::__is_heap_until(__first, std::distance(__first, __last),
-			       std::move(__comp));
+      return __first + std::__is_heap_until
+	(std::__niter_base(__first), std::distance(__first, __last),
+	 std::move(__comp));
     }
 
   /**
@@ -583,8 +609,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       __glibcxx_requires_irreflexive_pred(__first, __last, __comp);
 
       const auto __dist = std::distance(__first, __last);
-      return std::__is_heap_until(__first, __dist,
-				  std::move(__comp)) == __dist;
+      return std::__is_heap_until
+	(std::__niter_base(__first), __dist, std::move(__comp)) == __dist;
     }
 #endif // C++11
 
