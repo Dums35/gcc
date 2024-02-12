@@ -2979,7 +2979,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   // (usually a pointer). See uses in std::copy, std::fill, etc.
   template<typename _Iterator, typename _Container>
     _GLIBCXX_NODISCARD __attribute__((__always_inline__))
-    _GLIBCXX20_CONSTEXPR
+    _GLIBCXX14_CONSTEXPR
     inline _Iterator
     __niter_base(__gnu_cxx::__normal_iterator<_Iterator, _Container> __it)
     _GLIBCXX_NOEXCEPT_IF(std::is_nothrow_copy_constructible<_Iterator>::value)
@@ -2988,7 +2988,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   // Fallback implementation used for iterators that can't be unwrapped.
   template<typename _Iterator>
     _GLIBCXX_NODISCARD __attribute__((__always_inline__))
-    _GLIBCXX20_CONSTEXPR
+    _GLIBCXX14_CONSTEXPR
     inline _Iterator
     __niter_base(_Iterator __it)
     _GLIBCXX_NOEXCEPT_IF(std::is_nothrow_copy_constructible<_Iterator>::value)
@@ -3009,7 +3009,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		 std::random_access_iterator_tag>&);
 #else
   template<typename _Ite, typename _Seq>
-    _GLIBCXX20_CONSTEXPR
+    _GLIBCXX14_CONSTEXPR
     decltype(std::__niter_base(std::declval<_Ite>()))
     __niter_base(const ::__gnu_debug::_Safe_iterator<_Ite, _Seq,
 		 std::random_access_iterator_tag>&)
@@ -3018,14 +3018,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
 #if __cplusplus >= 201103L
   template<typename _Iterator>
-    _GLIBCXX20_CONSTEXPR
+    _GLIBCXX14_CONSTEXPR
     inline auto
     __niter_base(reverse_iterator<_Iterator> __it)
     -> decltype(__make_reverse_iterator(__niter_base(__it.base())))
     { return __make_reverse_iterator(__niter_base(__it.base())); }
 
   template<typename _Iterator>
-    _GLIBCXX20_CONSTEXPR
+    _GLIBCXX14_CONSTEXPR
     inline auto
     __niter_base(move_iterator<_Iterator> __it)
     -> decltype(make_move_iterator(__niter_base(__it.base())))
@@ -3052,7 +3052,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   // All overloads of std::__niter_base must be declared before this.
   template<typename _From, typename _To>
     _GLIBCXX_NODISCARD
-    _GLIBCXX20_CONSTEXPR
+    _GLIBCXX14_CONSTEXPR
     inline _From
     __niter_wrap(_From __from, _To __res)
     { return __from + (std::__niter_base(__res) - std::__niter_base(__from)); }
@@ -3060,7 +3060,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   // No need to wrap, iterator already has the right type.
   template<typename _Iterator>
     _GLIBCXX_NODISCARD __attribute__((__always_inline__))
-    _GLIBCXX20_CONSTEXPR
+    _GLIBCXX14_CONSTEXPR
     inline _Iterator
     __niter_wrap(const _Iterator&, _Iterator __res)
     { return __res; }
