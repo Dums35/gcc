@@ -37,7 +37,7 @@ proc libstdc++-dg-prune { system text } {
       return "::unsupported::hosted C++ headers not supported"
     }
 
-    regsub -all "std::__8::" $text "std::" text
+    regsub -all "std::__9::" $text "std::" text
 
     # Ignore caret diagnostics. Unfortunately dejaGNU trims leading
     # spaces, so one cannot rely on them being present.

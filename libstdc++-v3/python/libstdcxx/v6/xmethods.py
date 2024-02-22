@@ -28,7 +28,7 @@ def get_bool_type():
 def get_std_size_type():
     return gdb.lookup_type('std::size_t')
 
-_versioned_namespace = '__8::'
+_versioned_namespace = '__9::'
 
 def is_specialization_of(x, template_name):
     """

@@ -126,7 +126,7 @@ def find_type(orig, name):
             raise ValueError("Cannot find type %s::%s" % (str(orig), name))
 
 
-_versioned_namespace = '__8::'
+_versioned_namespace = '__9::'
 
 
 def lookup_templ_spec(templ, *args):
