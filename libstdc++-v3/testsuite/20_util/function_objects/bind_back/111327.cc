@@ -39,4 +39,4 @@ int main() {
   std::move(std::as_const(g1))();
 }
 
-// { dg-error "no type named 'type' in 'struct std::invoke_result" "" { target c++23 } 0 }
+// { dg-error "no type named 'type' in 'struct std::(__9::)?invoke_result" "" { target c++23 } 0 }
