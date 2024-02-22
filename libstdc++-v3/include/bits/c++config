@@ -378,7 +378,7 @@ namespace __gnu_cxx
 
 #if _GLIBCXX_INLINE_VERSION
 // Inline namespace for symbol versioning of (nearly) everything in std.
-# define _GLIBCXX_BEGIN_NAMESPACE_VERSION namespace __8 {
+# define _GLIBCXX_BEGIN_NAMESPACE_VERSION namespace __9 {
 # define _GLIBCXX_END_NAMESPACE_VERSION }
 // Unused when everything in std is versioned anyway.
 # define _GLIBCXX_BEGIN_INLINE_ABI_NAMESPACE(X)

@@ -1441,7 +1441,7 @@ namespace __format
   to_chars_result
   to_chars(char*, char*, _Float128) noexcept
 #  if _GLIBCXX_INLINE_VERSION
-    __asm("_ZNSt3__88to_charsEPcS0_DF128_");
+    __asm("_ZNSt3__98to_charsEPcS0_DF128_");
 #  else
     __asm("_ZSt8to_charsPcS_DF128_");
 #  endif
@@ -1449,7 +1449,7 @@ namespace __format
   to_chars_result
   to_chars(char*, char*, _Float128, chars_format) noexcept
 #  if _GLIBCXX_INLINE_VERSION
-    __asm("_ZNSt3__88to_charsEPcS0_DF128_NS_12chars_formatE");
+    __asm("_ZNSt3__98to_charsEPcS0_DF128_NS_12chars_formatE");
 #  else
     __asm("_ZSt8to_charsPcS_DF128_St12chars_format");
 #  endif
@@ -1457,7 +1457,7 @@ namespace __format
   to_chars_result
   to_chars(char*, char*, _Float128, chars_format, int) noexcept
 #  if _GLIBCXX_INLINE_VERSION
-    __asm("_ZNSt3__88to_charsEPcS0_DF128_NS_12chars_formatEi");
+    __asm("_ZNSt3__98to_charsEPcS0_DF128_NS_12chars_formatEi");
 #  else
     __asm("_ZSt8to_charsPcS_DF128_St12chars_formati");
 #  endif
@@ -3804,7 +3804,7 @@ namespace __format
       template<typename _Ctx, typename... _Argz>
 	friend auto std::
 #if _GLIBCXX_INLINE_VERSION
-	__8:: // Needed for PR c++/59256
+	__9:: // Needed for PR c++/59256
 #endif
 	make_format_args(_Argz&...) noexcept;
 
