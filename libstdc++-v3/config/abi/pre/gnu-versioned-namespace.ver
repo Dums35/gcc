@@ -19,7 +19,7 @@
 ## with this library; see the file COPYING3.  If not see
 ## <http://www.gnu.org/licenses/>.
 
-GLIBCXX_8.0 {
+GLIBCXX_9.0 {
 
   global:
 
@@ -27,7 +27,7 @@ GLIBCXX_8.0 {
     extern "C++"
     {
       std::*;
-      std::__8::*;
+      std::__9::*;
     };
 
     # operator new(size_t)
@@ -59,7 +59,7 @@ GLIBCXX_8.0 {
     # vtable
     _ZTVSt*;
     _ZTVNSt*;
-    _ZTVN9__gnu_cxx3__818stdio_sync_filebufI[cw]NSt3__811char_traitsI[cw]EEEE;
+    _ZTVN9__gnu_cxx3__918stdio_sync_filebufI[cw]NSt3__911char_traitsI[cw]EEEE;
 
     # thunk
     _ZTv0_n12_NS*;
@@ -74,7 +74,7 @@ GLIBCXX_8.0 {
     _ZTSNSt*;
 
     # locale
-    _ZNSt3__89has_facetINS_*;
+    _ZNSt3__99has_facetINS_*;
 
     # thread/mutex/condition_variable/future
     __once_proxy;
@@ -84,37 +84,37 @@ GLIBCXX_8.0 {
     __emutls_v._ZSt3__815__once_callable;
 
     # std::__convert_to_v
-    _ZNSt3__814__convert_to_v*;
+    _ZNSt3__914__convert_to_v*;
 
     # std::__copy_streambufs
-    _ZNSt3__817__copy_streambufsI*;
-    _ZNSt3__821__copy_streambufs_eofI*;
+    _ZNSt3__917__copy_streambufsI*;
+    _ZNSt3__921__copy_streambufs_eofI*;
 
     # std::__istream_extract(wistream&, wchar_t*, streamsize)
-    _ZNSt3__817__istream_extractIwNS_11char_traitsIwEEEEvRNS_13basic_istreamIT_T0_EEPS4_[ilx];
+    _ZNSt3__917__istream_extractIwNS_11char_traitsIwEEEEvRNS_13basic_istreamIT_T0_EEPS4_[ilx];
 
     # __gnu_cxx::__atomic_add
     # __gnu_cxx::__exchange_and_add
-    _ZN9__gnu_cxx3__812__atomic_addEPV[il][il];
-    _ZN9__gnu_cxx3__818__exchange_and_addEPV[li][il];
+    _ZN9__gnu_cxx3__912__atomic_addEPV[il][il];
+    _ZN9__gnu_cxx3__918__exchange_and_addEPV[li][il];
 
     # __gnu_cxx::__pool
-    _ZN9__gnu_cxx3__86__poolILb[01]EE13_M_initializeEv;
-    _ZN9__gnu_cxx3__86__poolILb[01]EE16_M_reserve_blockE[jmy][jmy];
-    _ZN9__gnu_cxx3__86__poolILb[01]EE16_M_reclaim_blockEPc[jmy];
-    _ZN9__gnu_cxx3__86__poolILb[01]EE10_M_destroyEv;
-    _ZN9__gnu_cxx3__86__poolILb1EE16_M_get_thread_idEv;
+    _ZN9__gnu_cxx3__96__poolILb[01]EE13_M_initializeEv;
+    _ZN9__gnu_cxx3__96__poolILb[01]EE16_M_reserve_blockE[jmy][jmy];
+    _ZN9__gnu_cxx3__96__poolILb[01]EE16_M_reclaim_blockEPc[jmy];
+    _ZN9__gnu_cxx3__96__poolILb[01]EE10_M_destroyEv;
+    _ZN9__gnu_cxx3__96__poolILb1EE16_M_get_thread_idEv;
 
-    _ZN9__gnu_cxx3__817__pool_alloc_base9_M_refillE[jmy];
-    _ZN9__gnu_cxx3__817__pool_alloc_base16_M_get_free_listE[jmy];
-    _ZN9__gnu_cxx3__817__pool_alloc_base12_M_get_mutexEv;
+    _ZN9__gnu_cxx3__917__pool_alloc_base9_M_refillE[jmy];
+    _ZN9__gnu_cxx3__917__pool_alloc_base16_M_get_free_listE[jmy];
+    _ZN9__gnu_cxx3__917__pool_alloc_base12_M_get_mutexEv;
 
-    _ZN9__gnu_cxx3__89free_list6_M_getE[jmy];
-    _ZN9__gnu_cxx3__89free_list8_M_clearEv;
+    _ZN9__gnu_cxx3__99free_list6_M_getE[jmy];
+    _ZN9__gnu_cxx3__99free_list8_M_clearEv;
 
     # __gnu_cxx::stdio_sync_filebuf
-    _ZTVN9__gnu_cxx3__818stdio_sync_filebufI[cw]St3__811char_traitsI[cw]EEE;
-    _ZN9__gnu_cxx3__818stdio_sync_filebufI[cw]NSt3__811char_traitsI[cw]EEE[5-9]*;
+    _ZTVN9__gnu_cxx3__918stdio_sync_filebufI[cw]St3__911char_traitsI[cw]EEE;
+    _ZN9__gnu_cxx3__918stdio_sync_filebufI[cw]NSt3__911char_traitsI[cw]EEE[5-9]*;
 
     # debug mode
     _ZN11__gnu_debug19_Safe_sequence_base12_M_get_mutexEv;
@@ -147,10 +147,10 @@ GLIBCXX_8.0 {
     _ZN14__gnu_parallel9_Settings3setERS0_;
 
     # to_chars/from_chars _Float128
-    _ZNSt3__88to_charsEPcS0_DF128_;
-    _ZNSt3__88to_charsEPcS0_DF128_NS_12chars_formatE;
-    _ZNSt3__88to_charsEPcS0_DF128_NS_12chars_formatEi;
-    _ZNSt3__810from_charsEPKcS1_RDF128_NS_12chars_formatE;
+    _ZNSt3__98to_charsEPcS0_DF128_;
+    _ZNSt3__98to_charsEPcS0_DF128_NS_12chars_formatE;
+    _ZNSt3__98to_charsEPcS0_DF128_NS_12chars_formatEi;
+    _ZNSt3__910from_charsEPKcS1_RDF128_NS_12chars_formatE;
 
   local:
     *;
@@ -247,7 +247,7 @@ CXXABI_2.0 {
     _ZSt15_Fnv_hash_bytesPKv*;
 
     # __gnu_cxx::_verbose_terminate_handler()
-    _ZN9__gnu_cxx3__827__verbose_terminate_handlerEv;
+    _ZN9__gnu_cxx3__927__verbose_terminate_handlerEv;
 
     # *_type_info classes, ctor and dtor
     _ZN10__cxxabiv117__array_type_info*;
