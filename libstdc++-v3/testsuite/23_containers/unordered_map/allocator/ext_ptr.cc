@@ -1,6 +1,6 @@
-// { dg-do run { target { c++11 } } }
+// { dg-do run { target c++11 } }
 
-#include <unordered_set>
+#include <unordered_map>
 #include <memory>
 #include <testsuite_hooks.h>
 #include <testsuite_allocator.h>
@@ -22,14 +22,15 @@ struct E : std::equal_to<T>
 
 using __gnu_test::CustomPointerAlloc;
 
-template class std::unordered_set<T, H, E, CustomPointerAlloc<T>>;
+template class std::unordered_map<T, int, H, E,
+				  CustomPointerAlloc<std::pair<const T, int>>>;
 
 void test01()
 {
-  typedef CustomPointerAlloc<T> alloc_type;
-  typedef std::unordered_set<T, H, E, alloc_type> test_type;
+  typedef CustomPointerAlloc<std::pair<const T, int>> alloc_type;
+  typedef std::unordered_map<T, int, H, E, alloc_type> test_type;
   test_type v;
-  v.insert(T());
+  v.insert({ T(), 0 });
   VERIFY( ++v.begin() == v.end() );
 }
 

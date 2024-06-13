@@ -1,4 +1,4 @@
-// { dg-do run { target { c++11 } } }
+// { dg-do run { target c++11 } }
 
 #include <unordered_set>
 #include <memory>
@@ -22,12 +22,12 @@ struct E : std::equal_to<T>
 
 using __gnu_test::CustomPointerAlloc;
 
-template class std::unordered_set<T, H, E, CustomPointerAlloc<T>>;
+template class std::unordered_multiset<T, H, E, CustomPointerAlloc<T>>;
 
 void test01()
 {
   typedef CustomPointerAlloc<T> alloc_type;
-  typedef std::unordered_set<T, H, E, alloc_type> test_type;
+  typedef std::unordered_multiset<T, H, E, alloc_type> test_type;
   test_type v;
   v.insert(T());
   VERIFY( ++v.begin() == v.end() );
