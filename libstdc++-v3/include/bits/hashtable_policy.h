@@ -33,8 +33,9 @@
 
 #include <tuple>		// for std::tuple, std::forward_as_tuple
 #include <bits/functional_hash.h> // for __is_fast_hash
-#include <bits/stl_algobase.h>	// for std::min, std::is_permutation.
+#include <bits/stl_algobase.h>	// for std::min, std::is_permutation
 #include <bits/stl_pair.h>	// for std::pair
+#include <bits/stl_uninitialized.h> // for __uninitialized_default_n
 #include <ext/aligned_buffer.h>	// for __gnu_cxx::__aligned_buffer
 #include <ext/alloc_traits.h>	// for std::__alloc_rebind
 #include <ext/numeric_traits.h>	// for __gnu_cxx::__int_traits
@@ -81,6 +82,11 @@ namespace __detail
     __distance_fw(_Iterator __first, _Iterator __last)
     { return __distance_fw(__first, __last,
 			   std::__iterator_category(__first)); }
+
+  template<typename _Alloc, typename _Value>
+    using __alloc_val_ptr =
+      typename std::allocator_traits<__alloc_rebind<_Alloc,
+						    _Value>>::pointer;
 
   struct _Identity
   {
@@ -322,6 +328,28 @@ namespace __detail
   };
 
   /**
+   * struct _Hash_pnode_base
+   *
+   * Like _Hash_node_base but used in case of custom pointer type defined by the
+   * allocator.
+   */
+  template<typename _NodePtr>
+    struct _Hash_pnode_base
+    {
+      using __node_ptr = _NodePtr;
+
+      __node_ptr _M_nxt;
+
+      _Hash_pnode_base()
+      noexcept(std::is_nothrow_default_constructible<__node_ptr>::value)
+      : _M_nxt() { }
+
+      _Hash_pnode_base(__node_ptr __next)
+      noexcept(std::is_nothrow_copy_constructible<__node_ptr>::value)
+      : _M_nxt(__next) { }
+    };
+
+  /**
    *  struct _Hash_node_value_base
    *
    *  Node type with the value to store.
@@ -356,18 +384,23 @@ namespace __detail
 
   /**
    *  Primary template struct _Hash_node_code_cache.
+   *
+   *  No cache.
    */
   template<bool _Cache_hash_code>
     struct _Hash_node_code_cache
     { };
 
   /**
-   *  Specialization for node with cache, struct _Hash_node_code_cache.
+   *  Specialization for node with cache.
    */
   template<>
     struct _Hash_node_code_cache<true>
     { std::size_t  _M_hash_code; };
 
+  /**
+   * Node with value and optionally a cache for the hash code.
+   */
   template<typename _Value, bool _Cache_hash_code>
     struct _Hash_node_value
     : _Hash_node_value_base<_Value>
@@ -375,28 +408,64 @@ namespace __detail
     { };
 
   /**
-   *  Primary template struct _Hash_node.
+   *  struct _Hash_node.
+   *
+   *  The node definition when the allocator is using raw pointers.
    */
   template<typename _Value, bool _Cache_hash_code>
     struct _Hash_node
     : _Hash_node_base
     , _Hash_node_value<_Value, _Cache_hash_code>
     {
-      _Hash_node*
+      using __node_ptr = _Hash_node*;
+      using __node_type = _Hash_node;
+
+      __node_ptr
       _M_next() const noexcept
-      { return static_cast<_Hash_node*>(this->_M_nxt); }
+      { return static_cast<__node_ptr>(this->_M_nxt); }
     };
 
-  /// Base class for node iterators.
-  template<typename _Value, bool _Cache_hash_code>
-    struct _Node_iterator_base
+  /**
+   *  struct _Hash_pnode.
+   *
+   *  The node definition used when the allocator define a custom pointer type.
+   */
+  template<typename _ValuePtr, bool _Cache_hash_code>
+    struct _Hash_pnode
+    : _Hash_pnode_base<__ptr_rebind<
+	_ValuePtr, _Hash_pnode<_ValuePtr, _Cache_hash_code>>>
+    , _Hash_node_value<
+	typename std::pointer_traits<_ValuePtr>::element_type, _Cache_hash_code>
     {
-      using __node_type = _Hash_node<_Value, _Cache_hash_code>;
+      using __node_ptr = __ptr_rebind<
+	_ValuePtr, _Hash_pnode<_ValuePtr, _Cache_hash_code>>;
+      using __node_type =
+	typename std::pointer_traits<__node_ptr>::element_type;
+      typedef typename std::pointer_traits<__node_ptr>::difference_type
+							difference_type;
 
-      __node_type* _M_cur;
+      __node_ptr
+      _M_next() const noexcept
+      { return this->_M_nxt; }
+    };
 
-      _Node_iterator_base() : _M_cur(nullptr) { }
-      _Node_iterator_base(__node_type* __p) noexcept
+  template<typename _Alloc, typename _Value, bool __hash_cached>
+    using __get_node_type = typename std::conditional<
+      std::is_pointer<__alloc_val_ptr<_Alloc, _Value>>::value,
+      _Hash_node<_Value, __hash_cached>,
+      _Hash_pnode<__alloc_val_ptr<_Alloc, _Value>, __hash_cached>>::type;
+
+  /// Base class for node iterators.
+  template<typename _NodePtr>
+    struct _Hashtable_iterator_base
+    {
+      using __node_ptr = _NodePtr;
+      using __node_type = typename std::pointer_traits<_NodePtr>::element_type;
+
+      __node_ptr _M_cur;
+
+      _Hashtable_iterator_base() : _M_cur() { }
+      _Hashtable_iterator_base(__node_ptr __p) noexcept
       : _M_cur(__p) { }
 
       void
@@ -404,16 +473,31 @@ namespace __detail
       { _M_cur = _M_cur->_M_next(); }
 
       friend bool
-      operator==(const _Node_iterator_base& __x, const _Node_iterator_base& __y)
-      noexcept
+      operator==(const _Hashtable_iterator_base& __x,
+		 const _Hashtable_iterator_base& __y) noexcept
       { return __x._M_cur == __y._M_cur; }
 
 #if __cpp_impl_three_way_comparison < 201907L
       friend bool
-      operator!=(const _Node_iterator_base& __x, const _Node_iterator_base& __y)
-      noexcept
+      operator!=(const _Hashtable_iterator_base& __x,
+		 const _Hashtable_iterator_base& __y) noexcept
       { return __x._M_cur != __y._M_cur; }
 #endif
+    };
+
+  /// Base class for node iterators.
+  template<typename _Value, bool _Cache_hash_code>
+    struct _Node_iterator_base
+    : _Hashtable_iterator_base<_Hash_node<_Value, _Cache_hash_code>*>
+    {
+      using __base_type =
+	_Hashtable_iterator_base<_Hash_node<_Value, _Cache_hash_code>*>;
+      using __node_ptr = typename __base_type::__node_ptr;
+      using __node_type = typename __base_type::__node_ptr;
+
+      _Node_iterator_base() = default;
+      _Node_iterator_base(__node_ptr __p) noexcept
+      : __base_type(__p) { }
     };
 
   /// Node iterators, used to iterate through all the hashtable.
@@ -424,6 +508,7 @@ namespace __detail
     private:
       using __base_type = _Node_iterator_base<_Value, __cache>;
       using __node_type = typename __base_type::__node_type;
+      using __node_ptr = typename __base_type::__node_ptr;
 
     public:
       using value_type = _Value;
@@ -439,7 +524,7 @@ namespace __detail
       _Node_iterator() = default;
 
       explicit
-      _Node_iterator(__node_type* __p) noexcept
+      _Node_iterator(__node_ptr __p) noexcept
       : __base_type(__p) { }
 
       reference
@@ -491,6 +576,7 @@ namespace __detail
     private:
       using __base_type = _Node_iterator_base<_Value, __cache>;
       using __node_type = typename __base_type::__node_type;
+      using __node_ptr = typename __base_type::__node_ptr;
 
       // The corresponding non-const iterator.
       using __iterator
@@ -507,7 +593,7 @@ namespace __detail
       _Node_const_iterator() = default;
 
       explicit
-      _Node_const_iterator(__node_type* __p) noexcept
+      _Node_const_iterator(__node_ptr __p) noexcept
       : __base_type(__p) { }
 
       _Node_const_iterator(const __iterator& __x) noexcept
@@ -591,6 +677,110 @@ namespace __detail
 		 const _Node_const_iterator& __y) noexcept
       { return !(__x == __y); }
 #endif
+    };
+
+  /// Node iterators, used to iterate through all the hashtable.
+  template<typename _NodePtr, bool __constant_iterators>
+    struct _Hashtable_iterator
+    : public _Hashtable_iterator_base<_NodePtr>
+    {
+    private:
+      using __base_type = _Hashtable_iterator_base<_NodePtr>;
+      using __node_type = typename __base_type::__node_type;
+      using __node_ptr = typename __base_type::__node_ptr;
+
+    public:
+      typedef typename __node_type::value_type		value_type;
+      typedef typename __node_type::difference_type	difference_type;
+      typedef std::forward_iterator_tag			iterator_category;
+
+      using pointer = typename std::conditional<__constant_iterators,
+				  const value_type*, value_type*>::type;
+
+      using reference = typename std::conditional<__constant_iterators,
+				  const value_type&, value_type&>::type;
+
+      _Hashtable_iterator() = default;
+
+      explicit
+      _Hashtable_iterator(__node_ptr __p) noexcept
+      : __base_type(__p) { }
+
+      reference
+      operator*() const noexcept
+      { return this->_M_cur->_M_v(); }
+
+      pointer
+      operator->() const noexcept
+      { return this->_M_cur->_M_valptr(); }
+
+      _Hashtable_iterator&
+      operator++() noexcept
+      {
+	this->_M_incr();
+	return *this;
+      }
+
+      _Hashtable_iterator
+      operator++(int) noexcept
+      {
+	_Hashtable_iterator __tmp(*this);
+	this->_M_incr();
+	return __tmp;
+      }
+    };
+
+  /// Node const_iterators, used to iterate through all the hashtable.
+  template<typename _NodePtr, bool __constant_iterators>
+    struct _Hashtable_const_iterator
+    : public _Hashtable_iterator_base<_NodePtr>
+    {
+    private:
+      using __base_type = _Hashtable_iterator_base<_NodePtr>;
+      using __node_type = typename __base_type::__node_type;
+      using __node_ptr = typename __base_type::__node_ptr;
+
+    public:
+      typedef typename __node_type::value_type		value_type;
+      typedef typename __node_type::difference_type	difference_type;
+      typedef std::forward_iterator_tag			iterator_category;
+
+      typedef const value_type*				pointer;
+      typedef const value_type&				reference;
+
+      _Hashtable_const_iterator() = default;
+
+      explicit
+      _Hashtable_const_iterator(__node_ptr __p) noexcept
+      : __base_type(__p) { }
+
+      _Hashtable_const_iterator(
+	const _Hashtable_iterator<_NodePtr,
+				  __constant_iterators>& __x) noexcept
+      : __base_type(__x._M_cur) { }
+
+      reference
+      operator*() const noexcept
+      { return this->_M_cur->_M_v(); }
+
+      pointer
+      operator->() const noexcept
+      { return this->_M_cur->_M_valptr(); }
+
+      _Hashtable_const_iterator&
+      operator++() noexcept
+      {
+	this->_M_incr();
+	return *this;
+      }
+
+      _Hashtable_const_iterator
+      operator++(int) noexcept
+      {
+	_Hashtable_const_iterator __tmp(*this);
+	this->_M_incr();
+	return __tmp;
+      }
     };
 
   // Many of class template _Hashtable's template parameters are policy
@@ -992,16 +1182,16 @@ namespace __detail
 
       using __hash_cached = typename _Traits::__hash_cached;
       using __constant_iterators = typename _Traits::__constant_iterators;
+      using __alloc_ptr = __alloc_val_ptr<_Alloc, _Value>;
 
-      using __hashtable_alloc = _Hashtable_alloc<
-	__alloc_rebind<_Alloc, _Hash_node<_Value,
-					  __hash_cached::value>>>;
+      using __node_type = __get_node_type<_Alloc, _Value, __hash_cached::value>;
+      using __node_ptr = __ptr_rebind<__alloc_ptr, __node_type>;
+      using __node_alloc_type = __alloc_rebind<_Alloc, __node_type>;
 
       using value_type = typename __hashtable_base::value_type;
       using size_type = typename __hashtable_base::size_type;
 
       using __unique_keys = typename _Traits::__unique_keys;
-      using __node_alloc_type = typename __hashtable_alloc::__node_alloc_type;
       using __node_gen_type = _AllocNode<__node_alloc_type>;
 
       __hashtable&
@@ -1019,12 +1209,19 @@ namespace __detail
 			_NodeGetter&, false_type __uks);
 
     public:
-      using iterator = _Node_iterator<_Value, __constant_iterators::value,
-				      __hash_cached::value>;
+      using iterator =
+	typename std::conditional<std::is_pointer<__alloc_ptr>::value,
+	  _Node_iterator<_Value,
+			 __constant_iterators::value, __hash_cached::value>,
+	  _Hashtable_iterator<__node_ptr,
+			      __constant_iterators::value>>::type;
 
-      using const_iterator = _Node_const_iterator<_Value,
-						  __constant_iterators::value,
-						  __hash_cached::value>;
+      using const_iterator =
+	typename std::conditional<std::is_pointer<__alloc_ptr>::value,
+	  _Node_const_iterator<_Value,
+			     __constant_iterators::value, __hash_cached::value>,
+	  _Hashtable_const_iterator<__node_ptr,
+				    __constant_iterators::value>>::type;
 
       using __ireturn_type = __conditional_t<__unique_keys::value,
 					     std::pair<iterator, bool>,
@@ -1361,6 +1558,17 @@ namespace __detail
     struct _Local_iterator_base;
 
   /**
+   *  Primary class template _Hashtable_local_iter_base.
+   *
+   *  Base class for local iterators, used to iterate within a bucket
+   *  but not between buckets.
+   */
+  template<typename _Key, typename _NodePtr, typename _ExtractKey,
+	   typename _Hash, typename _RangeHash, typename _Unused,
+	   bool __cache_hash_code>
+    struct _Hashtable_local_iter_base;
+
+  /**
    *  Primary class template _Hash_code_base.
    *
    *  Encapsulates two policy issues that aren't quite orthogonal.
@@ -1516,6 +1724,49 @@ namespace __detail
       _M_get_bucket() const { return _M_bucket; }  // for debug mode
     };
 
+  /// Partial specialization used when nodes contain a cached hash code.
+  template<typename _Key, typename _NodePtr, typename _ExtractKey,
+	   typename _Hash, typename _RangeHash, typename _Unused>
+    struct _Hashtable_local_iter_base<_Key, _NodePtr, _ExtractKey,
+				      _Hash, _RangeHash, _Unused, true>
+    : public _Hashtable_iterator_base<_NodePtr>
+    {
+    protected:
+      using __base_node_iter = _Hashtable_iterator_base<_NodePtr>;
+      using __node_ptr = typename __base_node_iter::__node_ptr;
+      using __node_type = typename __base_node_iter::__node_type;
+      using value_type = typename __node_type::value_type;
+      using __hash_code_base = _Hash_code_base<_Key, value_type, _ExtractKey,
+					      _Hash, _RangeHash, _Unused, true>;
+
+      _Hashtable_local_iter_base() = default;
+      _Hashtable_local_iter_base(const __hash_code_base&,
+				 __node_ptr __p,
+				 std::size_t __bkt, std::size_t __bkt_count)
+      : __base_node_iter(__p), _M_bucket(__bkt), _M_bucket_count(__bkt_count)
+      { }
+
+      void
+      _M_incr()
+      {
+	__base_node_iter::_M_incr();
+	if (this->_M_cur)
+	  {
+	    std::size_t __bkt
+	      = _RangeHash{}(this->_M_cur->_M_hash_code, _M_bucket_count);
+	    if (__bkt != _M_bucket)
+	      this->_M_cur = nullptr;
+	  }
+      }
+
+      std::size_t _M_bucket;
+      std::size_t _M_bucket_count;
+
+    public:
+      std::size_t
+      _M_get_bucket() const { return _M_bucket; }  // for debug mode
+    };
+
   // Uninitialized storage for a _Hash_code_base.
   // This type is DefaultConstructible and Assignable even if the
   // _Hash_code_base type isn't, so that _Local_iterator_base<..., false>
@@ -1624,6 +1875,86 @@ namespace __detail
 
       void
       _M_destroy() { this->_M_h()->~__hash_code_base(); }
+
+    public:
+      std::size_t
+      _M_get_bucket() const { return _M_bucket; }  // for debug mode
+    };
+
+  // Partial specialization used when hash codes are not cached
+  template<typename _Key, typename _NodePtr, typename _ExtractKey,
+	   typename _Hash, typename _RangeHash, typename _Unused>
+    struct _Hashtable_local_iter_base<_Key, _NodePtr, _ExtractKey,
+				      _Hash, _RangeHash, _Unused, false>
+    : _Hash_code_storage<_Hash>
+    , _Hashtable_iterator_base<_NodePtr>
+    {
+    protected:
+      using __node_iter_base = _Hashtable_iterator_base<_NodePtr>;
+      using __node_type = typename __node_iter_base::__node_type;
+      using __node_ptr = typename __node_iter_base::__node_ptr;
+      using value_type = typename __node_type::value_type;
+      using __hash_code_base = _Hash_code_base<_Key, value_type, _ExtractKey,
+					     _Hash, _RangeHash, _Unused, false>;
+
+      _Hashtable_local_iter_base() : _M_bucket_count(-1) { }
+
+      _Hashtable_local_iter_base(const __hash_code_base& __base,
+				 __node_ptr __p,
+				 std::size_t __bkt, std::size_t __bkt_count)
+      : __node_iter_base(__p), _M_bucket(__bkt), _M_bucket_count(__bkt_count)
+      { _M_init(__base.hash_function()); }
+
+      ~_Hashtable_local_iter_base()
+      {
+	if (_M_bucket_count != -1)
+	  _M_destroy();
+      }
+
+      _Hashtable_local_iter_base(const _Hashtable_local_iter_base& __iter)
+      : __node_iter_base(__iter._M_cur), _M_bucket(__iter._M_bucket)
+      , _M_bucket_count(__iter._M_bucket_count)
+      {
+	if (_M_bucket_count != -1)
+	  _M_init(*__iter._M_h());
+      }
+
+      _Hashtable_local_iter_base&
+      operator=(const _Hashtable_local_iter_base& __iter)
+      {
+	if (_M_bucket_count != -1)
+	  _M_destroy();
+	this->_M_cur = __iter._M_cur;
+	_M_bucket = __iter._M_bucket;
+	_M_bucket_count = __iter._M_bucket_count;
+	if (_M_bucket_count != -1)
+	  _M_init(*__iter._M_h());
+	return *this;
+      }
+
+      void
+      _M_incr()
+      {
+	__node_iter_base::_M_incr();
+	if (this->_M_cur)
+	  {
+	    std::size_t __bkt =
+	      _RangeHash{}((*this->_M_h())(_ExtractKey{}(this->_M_cur->_M_v())),
+			   _M_bucket_count);
+	    if (__bkt != _M_bucket)
+	      this->_M_cur = nullptr;
+	  }
+      }
+
+      std::size_t _M_bucket;
+      std::size_t _M_bucket_count;
+
+      void
+      _M_init(const _Hash& __h)
+      { ::new(this->_M_h()) _Hash(__h); }
+
+      void
+      _M_destroy() { this->_M_h()->~_Hash(); }
 
     public:
       std::size_t
@@ -1742,6 +2073,156 @@ namespace __detail
 	return __tmp;
       }
     };
+
+  /// local iterators
+  template<typename _Key, typename _NodePtr, typename _ExtractKey,
+	   typename _Hash, typename _RangeHash, typename _Unused,
+	   bool __constant_iterators, bool __cache>
+    struct _Hashtable_local_iterator
+    : public _Hashtable_local_iter_base<_Key, _NodePtr, _ExtractKey,
+					_Hash, _RangeHash, _Unused, __cache>
+    {
+    private:
+      using __base_type =
+	_Hashtable_local_iter_base<_Key, _NodePtr, _ExtractKey,
+				   _Hash, _RangeHash, _Unused, __cache>;
+      using __hash_code_base = typename __base_type::__hash_code_base;
+      using __node_type = typename __base_type::__node_type;
+      using __node_ptr = typename __base_type::__node_ptr;
+
+    public:
+      typedef typename __base_type::value_type		value_type;
+      typedef typename std::conditional<__constant_iterators,
+					const value_type*, value_type*>::type
+							pointer;
+      typedef typename std::conditional<__constant_iterators,
+					const value_type&, value_type&>::type
+							reference;
+      typedef typename __node_type::difference_type	difference_type;
+      typedef std::forward_iterator_tag			iterator_category;
+
+      _Hashtable_local_iterator() = default;
+
+      _Hashtable_local_iterator(const __hash_code_base& __base,
+				__node_ptr __n,
+				std::size_t __bkt, std::size_t __bkt_count)
+      : __base_type(__base, __n, __bkt, __bkt_count)
+      { }
+
+      reference
+      operator*() const
+      { return this->_M_cur->_M_v(); }
+
+      pointer
+      operator->() const
+      { return this->_M_cur->_M_valptr(); }
+
+      _Hashtable_local_iterator&
+      operator++()
+      {
+	this->_M_incr();
+	return *this;
+      }
+
+      _Hashtable_local_iterator
+      operator++(int)
+      {
+	_Hashtable_local_iterator __tmp(*this);
+	this->_M_incr();
+	return __tmp;
+      }
+    };
+
+  /// local const_iterators
+  template<typename _Key, typename _NodePtr, typename _ExtractKey,
+	   typename _Hash, typename _RangeHash, typename _Unused,
+	   bool __constant_iterators, bool __cache>
+    struct _Hashtable_const_local_iterator
+    : public _Hashtable_local_iter_base<_Key, _NodePtr, _ExtractKey,
+					_Hash, _RangeHash, _Unused, __cache>
+    {
+    private:
+      using __base_type =
+	_Hashtable_local_iter_base<_Key, _NodePtr, _ExtractKey,
+				   _Hash, _RangeHash, _Unused, __cache>;
+      using __hash_code_base = typename __base_type::__hash_code_base;
+      using __node_type = typename __base_type::__node_type;
+      using __node_ptr = typename __base_type::__node_ptr;
+
+    public:
+      typedef typename __base_type::value_type		value_type;
+      typedef const value_type*				pointer;
+      typedef const value_type&				reference;
+      typedef typename __node_type::difference_type	difference_type;
+      typedef std::forward_iterator_tag			iterator_category;
+
+      _Hashtable_const_local_iterator() = default;
+
+      _Hashtable_const_local_iterator(const __hash_code_base& __base,
+				      __node_ptr __n,
+				    std::size_t __bkt, std::size_t __bkt_count)
+      : __base_type(__base, __n, __bkt, __bkt_count)
+      { }
+
+      _Hashtable_const_local_iterator(const _Hashtable_local_iterator<
+				      _Key, _NodePtr, _ExtractKey,
+				      _Hash, _RangeHash, _Unused,
+				      __constant_iterators,
+				      __cache>& __x)
+      : __base_type(__x)
+      { }
+
+      reference
+      operator*() const
+      { return this->_M_cur->_M_v(); }
+
+      pointer
+      operator->() const
+      { return this->_M_cur->_M_valptr(); }
+
+      _Hashtable_const_local_iterator&
+      operator++()
+      {
+	this->_M_incr();
+	return *this;
+      }
+
+      _Hashtable_const_local_iterator
+      operator++(int)
+      {
+	_Hashtable_const_local_iterator __tmp(*this);
+	this->_M_incr();
+	return __tmp;
+      }
+    };
+
+  template<typename _NodePtr, typename _Key, typename _Value,
+	   typename _ExtractKey, typename _Hash,
+	   typename _RangeHash, typename _Unused,
+	   bool __constant_iterators, bool __hash_cached>
+    using __local_iterator = typename std::conditional<
+      std::is_pointer<_NodePtr>::value,
+      _Local_iterator<_Key, _Value,
+		      _ExtractKey, _Hash, _RangeHash, _Unused,
+		      __constant_iterators, __hash_cached>,
+      _Hashtable_local_iterator<_Key, _NodePtr,
+				_ExtractKey, _Hash, _RangeHash, _Unused,
+				__constant_iterators,
+				__hash_cached>>::type;
+
+  template<typename _NodePtr, typename _Key, typename _Value,
+	   typename _ExtractKey, typename _Hash,
+	   typename _RangeHash, typename _Unused,
+	   bool __constant_iterators, bool __hash_cached>
+    using __const_local_iterator = typename std::conditional<
+      std::is_pointer<_NodePtr>::value,
+      _Local_const_iterator<_Key, _Value,
+			    _ExtractKey, _Hash, _RangeHash, _Unused,
+			    __constant_iterators, __hash_cached>,
+      _Hashtable_const_local_iterator<_Key, _NodePtr,
+				      _ExtractKey, _Hash, _RangeHash, _Unused,
+				      __constant_iterators,
+				      __hash_cached>>::type;
 
   /**
    *  Primary class template _Hashtable_base.
@@ -2019,10 +2500,16 @@ namespace __detail
       using __ebo_node_alloc = _Hashtable_ebo_helper<0, _NodeAlloc>;
 
       template<typename>
-	struct __get_value_type;
+	struct __get_node_base;
       template<typename _Val, bool _Cache_hash_code>
-	struct __get_value_type<_Hash_node<_Val, _Cache_hash_code>>
-	{ using type = _Val; };
+	struct __get_node_base<_Hash_node<_Val, _Cache_hash_code>>
+	{ using type = _Hash_node_base; };
+      template<typename _ValuePtr, bool _Cache_hash_code>
+	struct __get_node_base<_Hash_pnode<_ValuePtr, _Cache_hash_code>>
+	{
+	  using type = _Hash_pnode_base<__ptr_rebind<
+			_ValuePtr, _Hash_pnode<_ValuePtr, _Cache_hash_code>>>;
+	};
 
     public:
       using __node_type = typename _NodeAlloc::value_type;
@@ -2030,16 +2517,13 @@ namespace __detail
       // Use __gnu_cxx to benefit from _S_always_equal and al.
       using __node_alloc_traits = __gnu_cxx::__alloc_traits<__node_alloc_type>;
 
-      using __value_alloc_traits = typename __node_alloc_traits::template
-	rebind_traits<typename __get_value_type<__node_type>::type>;
-
-      using __node_ptr = __node_type*;
-      using __node_base = _Hash_node_base;
-      using __node_base_ptr = __node_base*;
+      using __node_ptr = typename __node_alloc_traits::pointer;
+      using __node_base = typename __get_node_base<__node_type>::type;
+      using __node_base_ptr = __ptr_rebind<__node_ptr, __node_base>;
       using __buckets_alloc_type =
 	__alloc_rebind<__node_alloc_type, __node_base_ptr>;
       using __buckets_alloc_traits = std::allocator_traits<__buckets_alloc_type>;
-      using __buckets_ptr = __node_base_ptr*;
+      using __buckets_ptr = typename __buckets_alloc_traits::pointer;
 
       _Hashtable_alloc() = default;
       _Hashtable_alloc(const _Hashtable_alloc&) = default;
@@ -2093,17 +2577,16 @@ namespace __detail
       {
 	auto& __alloc = _M_node_allocator();
 	auto __nptr = __node_alloc_traits::allocate(__alloc, 1);
-	__node_ptr __n = std::__to_address(__nptr);
 	__try
 	  {
-	    ::new ((void*)__n) __node_type;
-	    __node_alloc_traits::construct(__alloc, __n->_M_valptr(),
+	    __node_alloc_traits::construct(__alloc, std::__to_address(__nptr));
+	    __node_alloc_traits::construct(__alloc, __nptr->_M_valptr(),
 					   std::forward<_Args>(__args)...);
-	    return __n;
+	    return __nptr;
 	  }
 	__catch(...)
 	  {
-	    __n->~__node_type();
+	    __node_alloc_traits::destroy(__alloc, std::__to_address(__nptr));
 	    __node_alloc_traits::deallocate(__alloc, __nptr, 1);
 	    __throw_exception_again;
 	  }
@@ -2121,10 +2604,9 @@ namespace __detail
     void
     _Hashtable_alloc<_NodeAlloc>::_M_deallocate_node_ptr(__node_ptr __n)
     {
-      typedef typename __node_alloc_traits::pointer _Ptr;
-      auto __ptr = std::pointer_traits<_Ptr>::pointer_to(*__n);
-      __n->~__node_type();
-      __node_alloc_traits::deallocate(_M_node_allocator(), __ptr, 1);
+      auto& __alloc = _M_node_allocator();
+      __node_alloc_traits::destroy(__alloc, std::__to_address(__n));
+      __node_alloc_traits::deallocate(__alloc, __n, 1);
     }
 
   template<typename _NodeAlloc>
@@ -2145,11 +2627,9 @@ namespace __detail
     -> __buckets_ptr
     {
       __buckets_alloc_type __alloc(_M_node_allocator());
-
       auto __ptr = __buckets_alloc_traits::allocate(__alloc, __bkt_count);
-      __buckets_ptr __p = std::__to_address(__ptr);
-      __builtin_memset(__p, 0, __bkt_count * sizeof(__node_base_ptr));
-      return __p;
+      std::__uninitialized_default_n(__ptr, __bkt_count);
+      return __ptr;
     }
 
   template<typename _NodeAlloc>
@@ -2158,10 +2638,9 @@ namespace __detail
     _M_deallocate_buckets(__buckets_ptr __bkts,
 			  std::size_t __bkt_count)
     {
-      typedef typename __buckets_alloc_traits::pointer _Ptr;
-      auto __ptr = std::pointer_traits<_Ptr>::pointer_to(*__bkts);
       __buckets_alloc_type __alloc(_M_node_allocator());
-      __buckets_alloc_traits::deallocate(__alloc, __ptr, __bkt_count);
+      std::_Destroy_n(__bkts, __bkt_count);
+      __buckets_alloc_traits::deallocate(__alloc, __bkts, __bkt_count);
     }
 
  ///@} hashtable-detail
