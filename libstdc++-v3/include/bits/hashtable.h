@@ -1081,7 +1081,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	  {
 	    __glibcxx_assert(get_allocator() == __nh.get_allocator());
 
-	    __node_ptr __n = nullptr;
+	    __node_ptr __n{};
 	    const key_type& __k = __nh._M_key();
 	    const size_type __size = size();
 	    if (__size <= __small_size_threshold())
@@ -1229,7 +1229,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		= _M_src_hash_code(__src.hash_function(), __k, *__pos._M_cur);
 	      size_type __bkt = _M_bucket_index(__code);
 	      if (__size <= __small_size_threshold()
-		  || _M_find_node(__bkt, __k, __code) == nullptr)
+		  || !_M_find_node(__bkt, __k, __code))
 		{
 		  auto __nh = __src.extract(__pos);
 		  _M_insert_unique_node(__bkt, __code, __nh._M_ptr, __n_elt);
@@ -1250,7 +1250,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	      node_type>, "Node types are compatible");
 	  __glibcxx_assert(get_allocator() == __src.get_allocator());
 
-	  __node_ptr __hint = nullptr;
+	  __node_ptr __hint{};
 	  this->reserve(size() + __src.size());
 	  for (auto __i = __src.cbegin(), __end = __src.cend(); __i != __end;)
 	    {
@@ -1398,7 +1398,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		 _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::
       _M_assign_elements(_Ht&& __ht)
       {
-	__buckets_ptr __former_buckets = nullptr;
+	__buckets_ptr __former_buckets{};
 	std::size_t __former_bucket_count = _M_bucket_count;
 	__rehash_guard_t __rehash_guard(_M_rehash_policy);
 
@@ -1447,7 +1447,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		 _Hash, _RangeHash, _Unused, _RehashPolicy, _Traits>::
       _M_assign(_Ht&& __ht, _NodeGenerator& __node_gen)
       {
-	__buckets_ptr __buckets = nullptr;
+	__buckets_ptr __buckets{};
 	if (!_M_buckets)
 	  _M_buckets = __buckets = _M_allocate_buckets(_M_bucket_count);
 
@@ -1979,7 +1979,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       {
 	if (size() <= __small_size_threshold())
 	  {
-	    __node_ptr __n, __beg = nullptr;
+	    __node_ptr __n, __beg{};
 	    for (__n = _M_begin(); __n; __n = __n->_M_next())
 	      {
 		if (this->_M_key_equals_tr(__k, *__n))
@@ -2023,7 +2023,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       {
 	if (size() <= __small_size_threshold())
 	  {
-	    __node_ptr __n, __beg = nullptr;
+	    __node_ptr __n, __beg{};
 	    for (__n = _M_begin(); __n; __n = __n->_M_next())
 	      {
 		if (this->_M_key_equals_tr(__k, *__n))
@@ -2071,7 +2071,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       if (!__prev_p->_M_nxt)
 	return nullptr;
 
-      for (__node_ptr __p = _S_cast(__prev_p->_M_nxt); __p != nullptr;
+      for (__node_ptr __p = _S_cast(__prev_p->_M_nxt); __p;
 	   __p = __p->_M_next())
 	{
 	  if (this->_M_key_equals(__k, *__p))
@@ -2304,7 +2304,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       // if it is equivalent.
       __node_base_ptr __hint_base = __hint;
       __node_base_ptr __prev
-	= __builtin_expect(__hint != nullptr, false)
+	= __builtin_expect(__hint ? 1 : 0, 0)
 	  && this->_M_equals(__k, __code, *__hint)
 	    ? __hint_base
 	    : _M_find_before_node(__bkt, __k, __code);
@@ -2698,7 +2698,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _M_before_begin._M_nxt = nullptr;
       std::size_t __bbegin_bkt = 0;
       std::size_t __prev_bkt = 0;
-      __node_ptr __prev_p = nullptr;
+      __node_ptr __prev_p{};
       bool __check_bucket = false;
 
       while (__p)
