@@ -1522,7 +1522,7 @@ _GLIBCXX_END_NAMESPACE_CONTAINER
     _GLIBCXX20_CONSTEXPR
     _ForwardIterator
     __lower_bound(_ForwardIterator __first, _ForwardIterator __last,
-		  const _Tp& __val, _GLIBCXX_FWDREF(_Compare) __comp)
+		  _GLIBCXX_FWDCREF(_Tp) __val, _GLIBCXX_FWDREF(_Compare) __comp)
     {
       typedef typename iterator_traits<_ForwardIterator>::difference_type
 	_DistanceType;

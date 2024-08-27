@@ -2021,7 +2021,7 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
     _GLIBCXX20_CONSTEXPR
     _ForwardIterator
     __upper_bound(_ForwardIterator __first, _ForwardIterator __last,
-		  const _Tp& __val, _GLIBCXX_FWDREF(_Compare) __comp)
+		  _GLIBCXX_FWDCREF(_Tp) __val, _GLIBCXX_FWDREF(_Compare) __comp)
     {
       typedef typename iterator_traits<_ForwardIterator>::difference_type
 	_DistanceType;
@@ -2436,8 +2436,6 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
 	  __len1, __len2, __buffer, _GLIBCXX_FORWARD(_Compare, __comp));
       else
 	{
-	  typedef typename
-	    std::iterator_traits<_BidirectionalIterator>::value_type _Val;
 	  _BidirectionalIterator __first_cut = __first;
 	  _BidirectionalIterator __second_cut = __middle;
 	  _Distance __len11 = 0;
@@ -2446,18 +2444,16 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
 	    {
 	      __len11 = __len1 / 2;
 	      std::advance(__first_cut, __len11);
-	      const _Val& __val = *__first_cut;
 	      __second_cut
-		= std::__lower_bound(__middle, __last, __val, __comp);
+		= std::__lower_bound(__middle, __last, *__first_cut, __comp);
 	      __len22 = std::distance(__middle, __second_cut);
 	    }
 	  else
 	    {
 	      __len22 = __len2 / 2;
 	      std::advance(__second_cut, __len22);
-	      const _Val& __val = *__second_cut;
 	      __first_cut
-		= std::__upper_bound(__first, __middle, __val, __comp);
+		= std::__upper_bound(__first, __middle, *__second_cut, __comp);
 	      __len11 = std::distance(__first, __first_cut);
 	    }
 
@@ -2496,8 +2492,6 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
 	  return;
 	}
 
-      typedef
-	typename std::iterator_traits<_BidirectionalIterator>::value_type _Val;
       _BidirectionalIterator __first_cut = __first;
       _BidirectionalIterator __second_cut = __middle;
       _Distance __len11 = 0;
@@ -2506,18 +2500,16 @@ _GLIBCXX_END_INLINE_ABI_NAMESPACE(_V2)
 	{
 	  __len11 = __len1 / 2;
 	  std::advance(__first_cut, __len11);
-	  const _Val& __val = *__first_cut;
 	  __second_cut
-	    = std::__lower_bound(__middle, __last, __val, __comp);
+	    = std::__lower_bound(__middle, __last, *__first_cut, __comp);
 	  __len22 = std::distance(__middle, __second_cut);
 	}
       else
 	{
 	  __len22 = __len2 / 2;
 	  std::advance(__second_cut, __len22);
-	  const _Val& __val = *__second_cut;
 	  __first_cut
-	    = std::__upper_bound(__first, __middle, __val, __comp);
+	    = std::__upper_bound(__first, __middle, *__second_cut, __comp);
 	  __len11 = std::distance(__first, __first_cut);
 	}
 
