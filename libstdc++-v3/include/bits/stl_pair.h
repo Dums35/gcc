@@ -994,6 +994,84 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 #endif
 	}
 #endif // C++11
+
+#if __cpp_lib_three_way_comparison
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 3865. Sorting a range of pairs
+
+      /// Two pairs are equal iff their members are equal.
+      template<typename _U1, typename _U2>
+	[[nodiscard]]
+	friend constexpr bool
+	operator==(const pair& __x, const pair<_U1, _U2>& __y)
+	requires requires {
+	  { __x.first == __y.first } -> __detail::__boolean_testable;
+	  { __x.second == __y.second } -> __detail::__boolean_testable;
+	}
+	{ return __x.first == __y.first && __x.second == __y.second; }
+
+      /** Defines a lexicographical order for pairs.
+       *
+       * For two pairs of comparable types, `P` is ordered before `Q` if
+       * `P.first` is less than `Q.first`, or if `P.first` and `Q.first`
+       * are equivalent (neither is less than the other) and `P.second` is
+       * less than `Q.second`.
+       */
+      template<typename _U1, typename _U2>
+	[[nodiscard]]
+	friend constexpr common_comparison_category_t<
+	  __detail::__synth3way_t<_T1, _U1>,
+	  __detail::__synth3way_t<_T2, _U2>>
+	operator<=>(const pair<_T1, _T2>& __x, const pair<_U1, _U2>& __y)
+	{
+	  if (auto __c = __detail::__synth3way(__x.first, __y.first); __c != 0)
+	    return __c;
+	  return __detail::__synth3way(__x.second, __y.second);
+	}
+#else
+      /// Two pairs of the same type are equal iff their members are equal.
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX_CONSTEXPR bool
+      operator==(const pair& __x, const pair& __y)
+      { return __x.first == __y.first && __x.second == __y.second; }
+
+      /** Defines a lexicographical order for pairs.
+       *
+       * For two pairs of the same type, `P` is ordered before `Q` if
+       * `P.first` is less than `Q.first`, or if `P.first` and `Q.first`
+       * are equivalent (neither is less than the other) and `P.second` is less
+       * than `Q.second`.
+       */
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX_CONSTEXPR bool
+      operator<(const pair& __x, const pair& __y)
+      { return __x.first < __y.first
+	  || (!(__y.first < __x.first) && __x.second < __y.second); }
+
+      /// Uses @c operator== to find the result.
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX_CONSTEXPR bool
+      operator!=(const pair& __x, const pair& __y)
+      { return !(__x == __y); }
+
+      /// Uses @c operator< to find the result.
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX_CONSTEXPR bool
+      operator>(const pair& __x, const pair& __y)
+      { return __y < __x; }
+
+      /// Uses @c operator< to find the result.
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX_CONSTEXPR bool
+      operator<=(const pair& __x, const pair& __y)
+      { return !(__y < __x); }
+
+      /// Uses @c operator< to find the result.
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX_CONSTEXPR bool
+      operator>=(const pair& __x, const pair& __y)
+      { return !(__x < __y); }
+#endif // !(three_way_comparison && concepts)
     };
 
   /// @relates pair @{
@@ -1001,89 +1079,6 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 #if __cpp_deduction_guides >= 201606
   template<typename _T1, typename _T2> pair(_T1, _T2) -> pair<_T1, _T2>;
 #endif
-
-#if __cpp_lib_three_way_comparison
-  // _GLIBCXX_RESOLVE_LIB_DEFECTS
-  // 3865. Sorting a range of pairs
-
-  /// Two pairs are equal iff their members are equal.
-  template<typename _T1, typename _T2, typename _U1, typename _U2>
-    [[nodiscard]]
-    constexpr bool
-    operator==(const pair<_T1, _T2>& __x, const pair<_U1, _U2>& __y)
-    requires requires {
-      { __x.first == __y.first } -> __detail::__boolean_testable;
-      { __x.second == __y.second } -> __detail::__boolean_testable;
-    }
-    { return __x.first == __y.first && __x.second == __y.second; }
-
-  /** Defines a lexicographical order for pairs.
-   *
-   * For two pairs of comparable types, `P` is ordered before `Q` if
-   * `P.first` is less than `Q.first`, or if `P.first` and `Q.first`
-   * are equivalent (neither is less than the other) and `P.second` is
-   * less than `Q.second`.
-  */
-  template<typename _T1, typename _T2, typename _U1, typename _U2>
-    [[nodiscard]]
-    constexpr common_comparison_category_t<__detail::__synth3way_t<_T1, _U1>,
-					   __detail::__synth3way_t<_T2, _U2>>
-    operator<=>(const pair<_T1, _T2>& __x, const pair<_U1, _U2>& __y)
-    {
-      if (auto __c = __detail::__synth3way(__x.first, __y.first); __c != 0)
-	return __c;
-      return __detail::__synth3way(__x.second, __y.second);
-    }
-#else
-  /// Two pairs of the same type are equal iff their members are equal.
-  template<typename _T1, typename _T2>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX_CONSTEXPR bool
-    operator==(const pair<_T1, _T2>& __x, const pair<_T1, _T2>& __y)
-    { return __x.first == __y.first && __x.second == __y.second; }
-
-  /** Defines a lexicographical order for pairs.
-   *
-   * For two pairs of the same type, `P` is ordered before `Q` if
-   * `P.first` is less than `Q.first`, or if `P.first` and `Q.first`
-   * are equivalent (neither is less than the other) and `P.second` is less
-   * than `Q.second`.
-  */
-  template<typename _T1, typename _T2>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX_CONSTEXPR bool
-    operator<(const pair<_T1, _T2>& __x, const pair<_T1, _T2>& __y)
-    { return __x.first < __y.first
-	     || (!(__y.first < __x.first) && __x.second < __y.second); }
-
-  /// Uses @c operator== to find the result.
-  template<typename _T1, typename _T2>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX_CONSTEXPR bool
-    operator!=(const pair<_T1, _T2>& __x, const pair<_T1, _T2>& __y)
-    { return !(__x == __y); }
-
-  /// Uses @c operator< to find the result.
-  template<typename _T1, typename _T2>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX_CONSTEXPR bool
-    operator>(const pair<_T1, _T2>& __x, const pair<_T1, _T2>& __y)
-    { return __y < __x; }
-
-  /// Uses @c operator< to find the result.
-  template<typename _T1, typename _T2>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX_CONSTEXPR bool
-    operator<=(const pair<_T1, _T2>& __x, const pair<_T1, _T2>& __y)
-    { return !(__y < __x); }
-
-  /// Uses @c operator< to find the result.
-  template<typename _T1, typename _T2>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX_CONSTEXPR bool
-    operator>=(const pair<_T1, _T2>& __x, const pair<_T1, _T2>& __y)
-    { return !(__x < __y); }
-#endif // !(three_way_comparison && concepts)
 
 #if __cplusplus >= 201103L
   /** Swap overload for pairs. Calls std::pair::swap().
@@ -1096,7 +1091,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 #if __cplusplus > 201402L || !defined(__STRICT_ANSI__) // c++1z or gnu++11
     // Constrained free swap overload, see p0185r1
     typename enable_if<__and_<__is_swappable<_T1>,
-                              __is_swappable<_T2>>::value>::type
+			      __is_swappable<_T2>>::value>::type
 #else
     void
 #endif

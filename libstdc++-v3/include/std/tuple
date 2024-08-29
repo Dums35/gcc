@@ -251,13 +251,15 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
 #if __cpp_lib_tuple_like // >= C++23
   struct __tuple_like_tag_t { explicit __tuple_like_tag_t() = default; };
+#endif
 
+#if __cpp_lib_three_way_comparison
   // This forward declaration is used by the operator<=> overload for
   // tuple-like types.
   template<typename _Cat, typename _Tp, typename _Up, typename _IndexSeq>
     constexpr _Cat
     __tuple_cmp(const _Tp& __t, const _Up& __u, _IndexSeq);
-#endif // C++23
+#endif
 
   /**
    * Contains the actual implementation of the @c tuple template, stored
@@ -1960,6 +1962,117 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       requires (is_swappable_v<const _Elements> && ...)
       { _Inherited::_M_swap(__in); }
 #endif // C++23
+
+    private:
+#if __cpp_lib_three_way_comparison
+      template<typename... _Ups>
+	requires (sizeof...(_Elements) == sizeof...(_Ups))
+	  && (requires (const _Elements& __t, const _Ups& __u) {
+	    { __t == __u } -> __detail::__boolean_testable;
+	  } && ...)
+	friend constexpr bool
+	operator== [[nodiscard]] (const tuple& __t,
+				  const tuple<_Ups...>& __u)
+	{
+	  return [&]<size_t... _Inds>(index_sequence<_Inds...>) {
+	    // Fold == over the tuples until non-equal elements are found.
+	    return ((std::get<_Inds>(__t) == std::get<_Inds>(__u)) && ...);
+	  }(index_sequence_for<_Elements...>{});
+	}
+
+      template<typename... _Ups>
+	requires (sizeof...(_Elements) == sizeof...(_Ups))
+	  && (requires { typename __detail::__synth3way_t<_Elements, _Ups>; } && ...)
+	friend constexpr
+	common_comparison_category_t<__detail::__synth3way_t<_Elements, _Ups>...>
+	operator<=> [[nodiscard]] (const tuple& __t, const tuple<_Ups...>& __u)
+	{
+	  using _Cat
+	    = common_comparison_category_t<__detail::__synth3way_t<_Elements, _Ups>...>;
+	  return std::__tuple_cmp<_Cat>(__t, __u,
+					index_sequence_for<_Elements...>());
+	}
+#else
+      // This class performs the comparison operations on tuples
+      template<typename _Tp, typename _Up, size_t __i, size_t __size>
+	struct __tuple_compare
+	{
+	  static constexpr bool
+	  __eq(const _Tp& __t, const _Up& __u)
+	  {
+	    return bool(std::get<__i>(__t) == std::get<__i>(__u))
+	      && __tuple_compare<_Tp, _Up, __i + 1, __size>::__eq(__t, __u);
+	  }
+
+	  static constexpr bool
+	  __less(const _Tp& __t, const _Up& __u)
+	  {
+	    return bool(std::get<__i>(__t) < std::get<__i>(__u))
+	      || (!bool(std::get<__i>(__u) < std::get<__i>(__t))
+		  && __tuple_compare<_Tp, _Up, __i + 1, __size>::__less(__t, __u));
+	  }
+	};
+
+      template<typename _Tp, typename _Up, size_t __size>
+	struct __tuple_compare<_Tp, _Up, __size, __size>
+	{
+	  static constexpr bool
+	  __eq(const _Tp&, const _Up&) { return true; }
+
+	  static constexpr bool
+	  __less(const _Tp&, const _Up&) { return false; }
+	};
+
+      template<typename... _UElements>
+	_GLIBCXX_NODISCARD
+	friend constexpr bool
+	operator==(const tuple& __t, const tuple<_UElements...>& __u)
+	{
+	  static_assert(sizeof...(_Elements) == sizeof...(_UElements),
+	    "tuple objects can only be compared if they have equal sizes.");
+	  using __compare = __tuple_compare<tuple<_Elements...>,
+					    tuple<_UElements...>,
+					    0, sizeof...(_Elements)>;
+	  return __compare::__eq(__t, __u);
+	}
+
+      template<typename... _UElements>
+	_GLIBCXX_NODISCARD
+	friend constexpr bool
+	operator<(const tuple& __t, const tuple<_UElements...>& __u)
+	{
+	  static_assert(sizeof...(_Elements) == sizeof...(_UElements),
+	    "tuple objects can only be compared if they have equal sizes.");
+	  using __compare = __tuple_compare<tuple<_Elements...>,
+					    tuple<_UElements...>,
+					    0, sizeof...(_Elements)>;
+	  return __compare::__less(__t, __u);
+	}
+
+      template<typename... _UElements>
+	_GLIBCXX_NODISCARD
+	friend constexpr bool
+	operator!=(const tuple& __t, const tuple<_UElements...>& __u)
+	{ return !(__t == __u); }
+
+      template<typename... _UElements>
+	_GLIBCXX_NODISCARD
+	friend constexpr bool
+	operator>(const tuple& __t, const tuple<_UElements...>& __u)
+	{ return __u < __t; }
+
+      template<typename... _UElements>
+	_GLIBCXX_NODISCARD
+	friend constexpr bool
+	operator<=(const tuple& __t, const tuple<_UElements...>& __u)
+	{ return !(__u < __t); }
+
+      template<typename... _UElements>
+	_GLIBCXX_NODISCARD
+	friend constexpr bool
+	operator>=(const tuple& __t, const tuple<_UElements...>& __u)
+	{ return !(__t < __u); }
+#endif // three_way_comparison
     };
 
 #if __cpp_deduction_guides >= 201606
@@ -1995,6 +2108,47 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       template<typename _Alloc>
 	_GLIBCXX20_CONSTEXPR
 	tuple(allocator_arg_t, const _Alloc&, const tuple&) noexcept { }
+
+    private:
+#if __cpp_lib_three_way_comparison
+      friend constexpr bool
+      operator== [[nodiscard]] (const tuple&, const tuple&)
+      { return true; }
+
+      friend constexpr strong_ordering
+      operator<=> [[nodiscard]] (const tuple&, const tuple&)
+      { return strong_ordering::equal; }
+#else
+      _GLIBCXX_NODISCARD
+      friend constexpr bool
+      operator==(const tuple&, const tuple& __u)
+      { return true; }
+
+      _GLIBCXX_NODISCARD
+      friend constexpr bool
+      operator<(const tuple&, const tuple&)
+      { return false; }
+
+      _GLIBCXX_NODISCARD
+      friend constexpr bool
+      operator!=(const tuple&, const tuple&)
+      { return false; }
+
+      _GLIBCXX_NODISCARD
+      friend constexpr bool
+      operator>(const tuple&, const tuple&)
+      { return false; }
+
+      _GLIBCXX_NODISCARD
+      friend constexpr bool
+      operator<=(const tuple&, const tuple& __u)
+      { return true; }
+
+      _GLIBCXX_NODISCARD
+      friend constexpr bool
+      operator>=(const tuple&, const tuple& __u)
+      { return true; }
+#endif // three_way_comparison
     };
 
 #if !(__cpp_concepts && __cpp_consteval && __cpp_conditional_explicit) // !C++20
@@ -2392,6 +2546,110 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       noexcept(__and_<__is_nothrow_swappable<_T1>,
 		      __is_nothrow_swappable<_T2>>::value)
       { _Inherited::_M_swap(__in); }
+
+    private:
+#if __cpp_lib_three_way_comparison
+      template<typename _U1, typename _U2>
+	requires (const _T1& __t1, const _U1& __u1)
+	{ { __t1 == __u1 } -> __detail::__boolean_testable; }
+	&& requires (const _T2& __t2, const _U2& __u2)
+	{ { __t2 == __u2 } -> __detail::__boolean_testable; }
+	friend constexpr bool
+	operator== [[nodiscard]] (const tuple& __t,
+				  const tuple<_U1, _U2>& __u)
+	{
+	  return std::get<0>(__t) == std::get<0>(__u)
+	    && std::get<1>(__t) == std::get<1>(__u);
+	}
+
+      template<typename _U1, typename _U2>
+	requires { typename __detail::__synth3way_t<_T1, _U1>; }
+	&& requires { typename __detail::__synth3way_t<_T2, _U2>; }
+	friend constexpr
+	common_comparison_category_t<__detail::__synth3way_t<_T1, _U1>,
+				     __detail::__synth3way_t<_T2, _U2>>
+	operator<=> [[nodiscard]] (const tuple& __t,
+				   const tuple<_U1, _U2>& __u)
+	{
+	  using _Cat
+	    = common_comparison_category_t<__detail::__synth3way_t<_T1, _U1>,
+					   __detail::__synth3way_t<_T2, _U2>>;
+	  return std::__tuple_cmp<_Cat>(__t, __u,
+					index_sequence_for<_T1, _T2>());
+	}
+#else
+      // This class performs the comparison operations on tuples
+      template<typename _Tp, typename _Up, size_t __i, size_t __size>
+	struct __tuple_compare
+	{
+	  static constexpr bool
+	  __eq(const _Tp& __t, const _Up& __u)
+	  {
+	    return bool(std::get<__i>(__t) == std::get<__i>(__u))
+	      && __tuple_compare<_Tp, _Up, __i + 1, __size>::__eq(__t, __u);
+	  }
+
+	  static constexpr bool
+	  __less(const _Tp& __t, const _Up& __u)
+	  {
+	    return bool(std::get<__i>(__t) < std::get<__i>(__u))
+	      || (!bool(std::get<__i>(__u) < std::get<__i>(__t))
+		  && __tuple_compare<_Tp, _Up, __i + 1, __size>::__less(__t, __u));
+	  }
+	};
+
+      template<typename _Tp, typename _Up, size_t __size>
+	struct __tuple_compare<_Tp, _Up, __size, __size>
+	{
+	  static constexpr bool
+	  __eq(const _Tp&, const _Up&) { return true; }
+
+	  static constexpr bool
+	  __less(const _Tp&, const _Up&) { return false; }
+	};
+
+      template<typename _U1, typename _U2>
+	_GLIBCXX_NODISCARD
+	friend constexpr bool
+	operator==(const tuple& __t, const tuple<_U1, _U2>& __u)
+	{
+	  using __compare = __tuple_compare<tuple, tuple<_U1, _U2>, 0, 2>;
+	  return __compare::__eq(__t, __u);
+	}
+
+      template<typename _U1, typename _U2>
+	_GLIBCXX_NODISCARD
+	friend constexpr bool
+	operator<(const tuple& __t, const tuple<_U1, _U2>& __u)
+	{
+	  using __compare = __tuple_compare<tuple, tuple<_U1, _U2>, 0, 2>;
+	  return __compare::__less(__t, __u);
+	}
+
+      template<typename _U1, typename _U2>
+	_GLIBCXX_NODISCARD
+	friend constexpr bool
+	operator!=(const tuple& __t, const tuple<_U1, _U2>& __u)
+	{ return !(__t == __u); }
+
+      template<typename _U1, typename _U2>
+	_GLIBCXX_NODISCARD
+	friend constexpr bool
+	operator>(const tuple& __t, const tuple<_U1, _U2>& __u)
+	{ return __u < __t; }
+
+      template<typename _U1, typename _U2>
+	_GLIBCXX_NODISCARD
+	friend constexpr bool
+	operator<=(const tuple& __t, const tuple<_U1, _U2>& __u)
+	{ return !(__u < __t); }
+
+      template<typename _U1, typename _U2>
+	_GLIBCXX_NODISCARD
+	friend constexpr bool
+	operator>=(const tuple& __t, const tuple<_U1, _U2>& __u)
+	{ return !(__t < __u); }
+#endif // three_way_comparison
     };
 #endif // concepts && conditional_explicit
 
@@ -2519,21 +2777,6 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 #endif
 
 #if __cpp_lib_three_way_comparison
-  template<typename... _Tps, typename... _Ups>
-    requires (sizeof...(_Tps) == sizeof...(_Ups))
-      && (requires (const _Tps& __t, const _Ups& __u) {
-	{ __t == __u } -> __detail::__boolean_testable;
-      } && ...)
-    constexpr bool
-    operator== [[nodiscard]] (const tuple<_Tps...>& __t,
-			      const tuple<_Ups...>& __u)
-    {
-      return [&]<size_t... _Inds>(index_sequence<_Inds...>) {
-	// Fold == over the tuples until non-equal elements are found.
-	return ((std::get<_Inds>(__t) == std::get<_Inds>(__u)) && ...);
-      }(index_sequence_for<_Tps...>{});
-    }
-
   template<typename _Cat, typename _Tp, typename _Up, typename _IndexSeq>
     [[nodiscard]]
     constexpr _Cat
@@ -2544,117 +2787,17 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       // Set __c to the comparison result of two corresponding elements.
       // Return true they are equivalent.
       auto __cmp = [&]<size_t _Ind>(integral_constant<size_t, _Ind>) {
-	__c = __detail::__synth3way(std::get<_Ind>(__t), std::get<_Ind>(__u));
-	return __c == 0;
+       __c = __detail::__synth3way(std::get<_Ind>(__t), std::get<_Ind>(__u));
+       return __c == 0;
       };
 
       [&]<size_t... _Inds>(index_sequence<_Inds...>) {
-	// Fold __cmp over the tuples until non-equivalent elements are found.
-	(void)(__cmp(integral_constant<size_t, _Inds>{}) && ...);
+       // Fold __cmp over the tuples until non-equivalent elements are found.
+       (void)(__cmp(integral_constant<size_t, _Inds>{}) && ...);
       }(__indices);
 
       return __c;
     }
-
-  template<typename... _Tps, typename... _Ups>
-    requires (sizeof...(_Tps) == sizeof...(_Ups))
-      && (requires { typename __detail::__synth3way_t<_Tps, _Ups>; } && ...)
-    constexpr
-    common_comparison_category_t<__detail::__synth3way_t<_Tps, _Ups>...>
-    operator<=> [[nodiscard]] (const tuple<_Tps...>& __t,
-			       const tuple<_Ups...>& __u)
-    {
-      using _Cat
-	= common_comparison_category_t<__detail::__synth3way_t<_Tps, _Ups>...>;
-      return std::__tuple_cmp<_Cat>(__t, __u, index_sequence_for<_Tps...>());
-    }
-#else
-
-  // This class performs the comparison operations on tuples
-  template<typename _Tp, typename _Up, size_t __i, size_t __size>
-    struct __tuple_compare
-    {
-      static constexpr bool
-      __eq(const _Tp& __t, const _Up& __u)
-      {
-	return bool(std::get<__i>(__t) == std::get<__i>(__u))
-	  && __tuple_compare<_Tp, _Up, __i + 1, __size>::__eq(__t, __u);
-      }
-
-      static constexpr bool
-      __less(const _Tp& __t, const _Up& __u)
-      {
-	return bool(std::get<__i>(__t) < std::get<__i>(__u))
-	  || (!bool(std::get<__i>(__u) < std::get<__i>(__t))
-	      && __tuple_compare<_Tp, _Up, __i + 1, __size>::__less(__t, __u));
-      }
-    };
-
-  template<typename _Tp, typename _Up, size_t __size>
-    struct __tuple_compare<_Tp, _Up, __size, __size>
-    {
-      static constexpr bool
-      __eq(const _Tp&, const _Up&) { return true; }
-
-      static constexpr bool
-      __less(const _Tp&, const _Up&) { return false; }
-    };
-
-  template<typename... _TElements, typename... _UElements>
-    _GLIBCXX_NODISCARD
-    constexpr bool
-    operator==(const tuple<_TElements...>& __t,
-	       const tuple<_UElements...>& __u)
-    {
-      static_assert(sizeof...(_TElements) == sizeof...(_UElements),
-	  "tuple objects can only be compared if they have equal sizes.");
-      using __compare = __tuple_compare<tuple<_TElements...>,
-					tuple<_UElements...>,
-					0, sizeof...(_TElements)>;
-      return __compare::__eq(__t, __u);
-    }
-
-  template<typename... _TElements, typename... _UElements>
-    _GLIBCXX_NODISCARD
-    constexpr bool
-    operator<(const tuple<_TElements...>& __t,
-	      const tuple<_UElements...>& __u)
-    {
-      static_assert(sizeof...(_TElements) == sizeof...(_UElements),
-	  "tuple objects can only be compared if they have equal sizes.");
-      using __compare = __tuple_compare<tuple<_TElements...>,
-					tuple<_UElements...>,
-					0, sizeof...(_TElements)>;
-      return __compare::__less(__t, __u);
-    }
-
-  template<typename... _TElements, typename... _UElements>
-    _GLIBCXX_NODISCARD
-    constexpr bool
-    operator!=(const tuple<_TElements...>& __t,
-	       const tuple<_UElements...>& __u)
-    { return !(__t == __u); }
-
-  template<typename... _TElements, typename... _UElements>
-    _GLIBCXX_NODISCARD
-    constexpr bool
-    operator>(const tuple<_TElements...>& __t,
-	      const tuple<_UElements...>& __u)
-    { return __u < __t; }
-
-  template<typename... _TElements, typename... _UElements>
-    _GLIBCXX_NODISCARD
-    constexpr bool
-    operator<=(const tuple<_TElements...>& __t,
-	       const tuple<_UElements...>& __u)
-    { return !(__u < __t); }
-
-  template<typename... _TElements, typename... _UElements>
-    _GLIBCXX_NODISCARD
-    constexpr bool
-    operator>=(const tuple<_TElements...>& __t,
-	       const tuple<_UElements...>& __u)
-    { return !(__t < __u); }
 #endif // three_way_comparison
 
   // NB: DR 705.

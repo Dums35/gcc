@@ -221,29 +221,29 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       { return false; }
 #endif
 
-      // Inherit everything else.
-    };
-
-  /** Equality comparison for std::allocator objects
-   *
-   * @return true, for all std::allocator objects.
-   * @relates std::allocator
-   */
-  template<typename _T1, typename _T2>
-    __attribute__((__always_inline__))
-    inline _GLIBCXX20_CONSTEXPR bool
-    operator==(const allocator<_T1>&, const allocator<_T2>&)
-    _GLIBCXX_NOTHROW
-    { return true; }
+      /** Equality comparison for std::allocator objects
+       *
+       * @return true, for all std::allocator objects.
+       * @relates std::allocator
+       */
+      template<typename _T2>
+	__attribute__((__always_inline__))
+	friend inline _GLIBCXX20_CONSTEXPR bool
+	operator==(const allocator&, const allocator<_T2>&)
+	_GLIBCXX_NOTHROW
+	{ return true; }
 
 #if __cpp_impl_three_way_comparison < 201907L
-  template<typename _T1, typename _T2>
-    __attribute__((__always_inline__))
-    inline _GLIBCXX20_CONSTEXPR bool
-    operator!=(const allocator<_T1>&, const allocator<_T2>&)
-    _GLIBCXX_NOTHROW
-    { return false; }
+      template<typename _T2>
+	__attribute__((__always_inline__))
+	friend inline _GLIBCXX20_CONSTEXPR bool
+	operator!=(const allocator&, const allocator<_T2>&)
+	_GLIBCXX_NOTHROW
+	{ return false; }
 #endif
+
+      // Inherit everything else.
+    };
 
   /// @cond undocumented
 

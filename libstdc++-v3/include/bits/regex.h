@@ -1071,6 +1071,574 @@ _GLIBCXX_BEGIN_NAMESPACE_CXX11
 		      string_type>
 	_M_str() const
 	{ return str(); }
+
+      // [7.9.2] sub_match non-member operators
+
+      /// @relates sub_match @{
+
+      /**
+       * @brief Tests the equivalence of two regular expression submatches.
+       * @param __lhs First regular expression submatch.
+       * @param __rhs Second regular expression submatch.
+       * @returns true if @a __lhs  is equivalent to @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator==(const sub_match& __lhs, const sub_match& __rhs)
+      { return __lhs.compare(__rhs) == 0; }
+
+#if __cpp_lib_three_way_comparison
+      /**
+       * @brief Three-way comparison of two regular expression submatches.
+       * @param __lhs First regular expression submatch.
+       * @param __rhs Second regular expression submatch.
+       * @returns A value indicating whether `__lhs` is less than, equal to,
+       *	      greater than, or incomparable with `__rhs`.
+       */
+      friend inline auto
+      operator<=>(const sub_match& __lhs, const sub_match& __rhs)
+      noexcept(__detail::__is_contiguous_iter<_BiIter>::value)
+      {
+	using _Tr = char_traits<typename iterator_traits<_BiIter>::value_type>;
+	return __detail::__char_traits_cmp_cat<_Tr>(__lhs.compare(__rhs));
+      }
+#else
+      /**
+       * @brief Tests the inequivalence of two regular expression submatches.
+       * @param __lhs First regular expression submatch.
+       * @param __rhs Second regular expression submatch.
+       * @returns true if @a __lhs  is not equivalent to @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator!=(const sub_match& __lhs, const sub_match& __rhs)
+      { return __lhs.compare(__rhs) != 0; }
+
+      /**
+       * @brief Tests the ordering of two regular expression submatches.
+       * @param __lhs First regular expression submatch.
+       * @param __rhs Second regular expression submatch.
+       * @returns true if @a __lhs precedes @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator<(const sub_match& __lhs, const sub_match& __rhs)
+      { return __lhs.compare(__rhs) < 0; }
+
+      /**
+       * @brief Tests the ordering of two regular expression submatches.
+       * @param __lhs First regular expression submatch.
+       * @param __rhs Second regular expression submatch.
+       * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator<=(const sub_match& __lhs, const sub_match& __rhs)
+      { return __lhs.compare(__rhs) <= 0; }
+
+      /**
+       * @brief Tests the ordering of two regular expression submatches.
+       * @param __lhs First regular expression submatch.
+       * @param __rhs Second regular expression submatch.
+       * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator>=(const sub_match& __lhs, const sub_match& __rhs)
+      { return __lhs.compare(__rhs) >= 0; }
+
+      /**
+       * @brief Tests the ordering of two regular expression submatches.
+       * @param __lhs First regular expression submatch.
+       * @param __rhs Second regular expression submatch.
+       * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator>(const sub_match& __lhs, const sub_match& __rhs)
+      { return __lhs.compare(__rhs) > 0; }
+#endif // three-way comparison
+
+      /// @cond undocumented
+
+      // Alias for a basic_string that can be compared to a sub_match.
+      template<typename _Ch_traits, typename _Ch_alloc>
+	using __sub_match_string =
+	  basic_string<value_type, _Ch_traits, _Ch_alloc>;
+      /// @endcond
+
+#if ! __cpp_lib_three_way_comparison
+      /**
+       * @brief Tests the equivalence of a string and a regular expression
+       *        submatch.
+       * @param __lhs A string.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs  is equivalent to @a __rhs, false otherwise.
+       */
+      template<typename _Ch_traits, typename _Ch_alloc>
+	friend inline bool
+	operator==(const __sub_match_string<_Ch_traits, _Ch_alloc>& __lhs,
+		   const sub_match& __rhs)
+	{ return __rhs._M_compare(__lhs.data(), __lhs.size()) == 0; }
+
+      /**
+       * @brief Tests the inequivalence of a string and a regular expression
+       *        submatch.
+       * @param __lhs A string.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs  is not equivalent to @a __rhs, false otherwise.
+       */
+      template<typename _Ch_traits, typename _Ch_alloc>
+	friend inline bool
+	operator!=(const __sub_match_string<_Ch_traits, _Ch_alloc>& __lhs,
+		   const sub_match& __rhs)
+	{ return !(__lhs == __rhs); }
+
+      /**
+       * @brief Tests the ordering of a string and a regular expression submatch.
+       * @param __lhs A string.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs precedes @a __rhs, false otherwise.
+       */
+      template<typename _Ch_traits, typename _Ch_alloc>
+	friend inline bool
+	operator<(const __sub_match_string<_Ch_traits, _Ch_alloc>& __lhs,
+		  const sub_match& __rhs)
+	{ return __rhs._M_compare(__lhs.data(), __lhs.size()) > 0; }
+
+      /**
+       * @brief Tests the ordering of a string and a regular expression submatch.
+       * @param __lhs A string.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
+       */
+      template<typename _Ch_traits, typename _Ch_alloc>
+	friend inline bool
+	operator>(const __sub_match_string<_Ch_traits, _Ch_alloc>& __lhs,
+		  const sub_match& __rhs)
+	{ return __rhs < __lhs; }
+
+      /**
+       * @brief Tests the ordering of a string and a regular expression submatch.
+       * @param __lhs A string.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
+       */
+      template<typename _Ch_traits, typename _Ch_alloc>
+	friend inline bool
+	operator>=(const __sub_match_string<_Ch_traits, _Ch_alloc>& __lhs,
+		   const sub_match& __rhs)
+	{ return !(__lhs < __rhs); }
+
+      /**
+       * @brief Tests the ordering of a string and a regular expression submatch.
+       * @param __lhs A string.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
+       */
+      template<typename _Ch_traits, typename _Ch_alloc>
+	friend inline bool
+	operator<=(const __sub_match_string<_Ch_traits, _Ch_alloc>& __lhs,
+		   const sub_match& __rhs)
+	{ return !(__rhs < __lhs); }
+#endif // three-way comparison
+
+      /**
+       * @brief Tests the equivalence of a regular expression submatch and a
+       *        string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A string.
+       * @returns true if @a __lhs is equivalent to @a __rhs, false otherwise.
+       */
+      template<typename _Ch_traits, typename _Ch_alloc>
+	friend inline bool
+	operator==(const sub_match& __lhs,
+		   const __sub_match_string<_Ch_traits, _Ch_alloc>& __rhs)
+	{ return __lhs._M_compare(__rhs.data(), __rhs.size()) == 0; }
+
+#if __cpp_lib_three_way_comparison
+      /**
+       * @brief Three-way comparison of a regular expression submatch and a string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A string.
+       * @returns A value indicating whether `__lhs` is less than, equal to,
+       *	      greater than, or incomparable with `__rhs`.
+       */
+      template<typename _Ch_traits, typename _Alloc>
+	friend inline auto
+	operator<=>(const sub_match& __lhs,
+		    const __sub_match_string<_Ch_traits, _Alloc>& __rhs)
+	noexcept(__detail::__is_contiguous_iter<_BiIter>::value)
+	{
+	  return __detail::__char_traits_cmp_cat<_Ch_traits>
+	    (__lhs._M_compare(__rhs.data(), __rhs.size()));
+	}
+#else
+      /**
+       * @brief Tests the inequivalence of a regular expression submatch and a
+       *        string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A string.
+       * @returns true if @a __lhs is not equivalent to @a __rhs, false otherwise.
+       */
+      template<typename _Ch_traits, typename _Ch_alloc>
+	friend inline bool
+	operator!=(const sub_match& __lhs,
+		   const __sub_match_string<_Ch_traits, _Ch_alloc>& __rhs)
+	{ return !(__lhs == __rhs); }
+
+      /**
+       * @brief Tests the ordering of a regular expression submatch and a string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A string.
+       * @returns true if @a __lhs precedes @a __rhs, false otherwise.
+       */
+      template<typename _Ch_traits, typename _Ch_alloc>
+	friend inline bool
+	operator<(const sub_match& __lhs,
+		  const __sub_match_string<_Ch_traits, _Ch_alloc>& __rhs)
+	{ return __lhs._M_compare(__rhs.data(), __rhs.size()) < 0; }
+
+      /**
+       * @brief Tests the ordering of a regular expression submatch and a string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A string.
+       * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
+       */
+      template<typename _Ch_traits, typename _Ch_alloc>
+	friend inline bool
+	operator>(const sub_match& __lhs,
+		  const __sub_match_string<_Ch_traits, _Ch_alloc>& __rhs)
+	{ return __rhs < __lhs; }
+
+      /**
+       * @brief Tests the ordering of a regular expression submatch and a string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A string.
+       * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
+       */
+      template<typename _Ch_traits, typename _Ch_alloc>
+	friend inline bool
+	 operator>=(const sub_match& __lhs,
+		    const __sub_match_string<_Ch_traits, _Ch_alloc>& __rhs)
+	{ return !(__lhs < __rhs); }
+
+      /**
+       * @brief Tests the ordering of a regular expression submatch and a string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A string.
+       * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
+       */
+      template<typename _Ch_traits, typename _Ch_alloc>
+	friend inline bool
+	operator<=(const sub_match& __lhs,
+		   const __sub_match_string<_Ch_traits, _Ch_alloc>& __rhs)
+	{ return !(__rhs < __lhs); }
+
+      /**
+       * @brief Tests the equivalence of a C string and a regular expression
+       *        submatch.
+       * @param __lhs A null-terminated string.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs  is equivalent to @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator==(value_type const* __lhs, const sub_match& __rhs)
+      { return __rhs.compare(__lhs) == 0; }
+
+      /**
+       * @brief Tests the inequivalence of a C string and a regular
+       *        expression submatch.
+       * @param __lhs A null-terminated string.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs is not equivalent to @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator!=(value_type const* __lhs, const sub_match& __rhs)
+      { return !(__lhs == __rhs); }
+
+      /**
+       * @brief Tests the ordering of a C string and a regular expression submatch.
+       * @param __lhs A null-terminated string.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs precedes @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator<(value_type const* __lhs, const sub_match& __rhs)
+      { return __rhs.compare(__lhs) > 0; }
+
+      /**
+       * @brief Tests the ordering of a C string and a regular expression submatch.
+       * @param __lhs A null-terminated string.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator>(value_type const* __lhs, const sub_match& __rhs)
+      { return __rhs < __lhs; }
+
+      /**
+       * @brief Tests the ordering of a C string and a regular expression submatch.
+       * @param __lhs A null-terminated string.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator>=(value_type const* __lhs, const sub_match& __rhs)
+      { return !(__lhs < __rhs); }
+
+      /**
+       * @brief Tests the ordering of a C string and a regular expression submatch.
+       * @param __lhs A null-terminated string.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator<=(value_type const* __lhs, const sub_match& __rhs)
+      { return !(__rhs < __lhs); }
+#endif // three-way comparison
+
+      /**
+       * @brief Tests the equivalence of a regular expression submatch and a C
+       *        string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A null-terminated string.
+       * @returns true if @a __lhs  is equivalent to @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator==(const sub_match& __lhs, value_type const* __rhs)
+      { return __lhs.compare(__rhs) == 0; }
+
+#if __cpp_lib_three_way_comparison
+      /**
+       * @brief Three-way comparison of a regular expression submatch and a C
+       *	    string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A null-terminated string.
+       * @returns A value indicating whether `__lhs` is less than, equal to,
+       *	      greater than, or incomparable with `__rhs`.
+       */
+      friend inline auto
+      operator<=>(const sub_match& __lhs, value_type const* __rhs)
+      noexcept(__detail::__is_contiguous_iter<_BiIter>::value)
+      {
+	using _Tr = char_traits<value_type>;
+	return __detail::__char_traits_cmp_cat<_Tr>(__lhs.compare(__rhs));
+      }
+#else
+      /**
+       * @brief Tests the inequivalence of a regular expression submatch and a
+       *        string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A null-terminated string.
+       * @returns true if @a __lhs is not equivalent to @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator!=(const sub_match& __lhs, value_type const* __rhs)
+      { return !(__lhs == __rhs); }
+
+      /**
+       * @brief Tests the ordering of a regular expression submatch and a C string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A null-terminated string.
+       * @returns true if @a __lhs precedes @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator<(const sub_match& __lhs, value_type const* __rhs)
+      { return __lhs.compare(__rhs) < 0; }
+
+      /**
+       * @brief Tests the ordering of a regular expression submatch and a C string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A null-terminated string.
+       * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator>(const sub_match& __lhs, value_type const* __rhs)
+      { return __rhs < __lhs; }
+
+      /**
+       * @brief Tests the ordering of a regular expression submatch and a C string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A null-terminated string.
+       * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator>=(const sub_match& __lhs, value_type const* __rhs)
+      { return !(__lhs < __rhs); }
+
+      /**
+       * @brief Tests the ordering of a regular expression submatch and a C string.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A null-terminated string.
+       * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator<=(const sub_match& __lhs, value_type const* __rhs)
+      { return !(__rhs < __lhs); }
+
+      /**
+       * @brief Tests the equivalence of a character and a regular expression
+       *        submatch.
+       * @param __lhs A character.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs is equivalent to @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator==(value_type const& __lhs, const sub_match& __rhs)
+      { return __rhs._M_compare(std::__addressof(__lhs), 1) == 0; }
+
+      /**
+       * @brief Tests the inequivalence of a character and a regular expression
+       *        submatch.
+       * @param __lhs A character.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs is not equivalent to @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator!=(value_type const& __lhs, const sub_match& __rhs)
+      { return !(__lhs == __rhs); }
+
+      /**
+       * @brief Tests the ordering of a character and a regular expression
+       *        submatch.
+       * @param __lhs A character.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs precedes @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator<(value_type const& __lhs, const sub_match& __rhs)
+      { return __rhs._M_compare(std::__addressof(__lhs), 1) > 0; }
+
+      /**
+       * @brief Tests the ordering of a character and a regular expression
+       *        submatch.
+       * @param __lhs A character.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator>(value_type const& __lhs, const sub_match& __rhs)
+      { return __rhs < __lhs; }
+
+      /**
+       * @brief Tests the ordering of a character and a regular expression
+       *        submatch.
+       * @param __lhs A character.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator>=(value_type const& __lhs, const sub_match& __rhs)
+      { return !(__lhs < __rhs); }
+
+      /**
+       * @brief Tests the ordering of a character and a regular expression
+       *        submatch.
+       * @param __lhs A character.
+       * @param __rhs A regular expression submatch.
+       * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator<=(value_type const& __lhs, const sub_match& __rhs)
+      { return !(__rhs < __lhs); }
+#endif // three-way comparison
+
+      /**
+       * @brief Tests the equivalence of a regular expression submatch and a
+       *        character.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A character.
+       * @returns true if @a __lhs  is equivalent to @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator==(const sub_match& __lhs, value_type const& __rhs)
+      { return __lhs._M_compare(std::__addressof(__rhs), 1) == 0; }
+
+#if __cpp_lib_three_way_comparison
+      /**
+       * @brief Three-way comparison of a regular expression submatch and a
+       *	    character.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A character.
+       * @returns A value indicating whether `__lhs` is less than, equal to,
+       *	      greater than, or incomparable with `__rhs`.
+       */
+      friend inline auto
+      operator<=>(const sub_match& __lhs, value_type const& __rhs)
+      noexcept(__detail::__is_contiguous_iter<_BiIter>::value)
+      {
+	using _Tr = char_traits<value_type>;
+	return __detail::__char_traits_cmp_cat<_Tr>
+	  (__lhs._M_compare(std::__addressof(__rhs), 1));
+      }
+#else
+      /**
+       * @brief Tests the inequivalence of a regular expression submatch and a
+       *        character.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A character.
+       * @returns true if @a __lhs is not equivalent to @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator!=(const sub_match& __lhs, value_type const& __rhs)
+      { return !(__lhs == __rhs); }
+
+      /**
+       * @brief Tests the ordering of a regular expression submatch and a
+       *        character.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A character.
+       * @returns true if @a __lhs precedes @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator<(const sub_match& __lhs, value_type const& __rhs)
+      { return __lhs._M_compare(std::__addressof(__rhs), 1) < 0; }
+
+      /**
+       * @brief Tests the ordering of a regular expression submatch and a
+       *        character.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A character.
+       * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator>(const sub_match& __lhs, value_type const& __rhs)
+      { return __rhs < __lhs; }
+
+      /**
+       * @brief Tests the ordering of a regular expression submatch and a
+       *        character.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A character.
+       * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator>=(const sub_match& __lhs, value_type const& __rhs)
+      { return !(__lhs < __rhs); }
+
+      /**
+       * @brief Tests the ordering of a regular expression submatch and a
+       *        character.
+       * @param __lhs A regular expression submatch.
+       * @param __rhs A character.
+       * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
+       */
+      friend inline bool
+      operator<=(const sub_match& __lhs, value_type const& __rhs)
+      { return !(__rhs < __lhs); }
+#endif // three-way comparison
+
+      /**
+       * @brief Inserts a matched string into an output stream.
+       *
+       * @param __os The output stream.
+       * @param __m  A submatch string.
+       *
+       * @returns the output stream with the submatch string inserted.
+       */
+      template<typename _Ch_type, typename _Ch_traits>
+	friend inline
+	basic_ostream<_Ch_type, _Ch_traits>&
+	operator<<(basic_ostream<_Ch_type, _Ch_traits>& __os,
+		   const sub_match& __m)
+	{ return __os << __m.str(); }
+
+      /// @} relates sub_match
     };
 
 
@@ -1087,636 +1655,6 @@ _GLIBCXX_BEGIN_NAMESPACE_CXX11
   /** @brief Regex submatch over a standard wide string. */
   typedef sub_match<wstring::const_iterator> wssub_match;
 #endif
-
-  // [7.9.2] sub_match non-member operators
-
-  /// @relates sub_match @{
-
-  /**
-   * @brief Tests the equivalence of two regular expression submatches.
-   * @param __lhs First regular expression submatch.
-   * @param __rhs Second regular expression submatch.
-   * @returns true if @a __lhs  is equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _BiIter>
-    inline bool
-    operator==(const sub_match<_BiIter>& __lhs, const sub_match<_BiIter>& __rhs)
-    { return __lhs.compare(__rhs) == 0; }
-
-#if __cpp_lib_three_way_comparison
-  /**
-   * @brief Three-way comparison of two regular expression submatches.
-   * @param __lhs First regular expression submatch.
-   * @param __rhs Second regular expression submatch.
-   * @returns A value indicating whether `__lhs` is less than, equal to,
-   *	      greater than, or incomparable with `__rhs`.
-   */
-  template<typename _BiIter>
-    inline auto
-    operator<=>(const sub_match<_BiIter>& __lhs,
-		const sub_match<_BiIter>& __rhs)
-    noexcept(__detail::__is_contiguous_iter<_BiIter>::value)
-    {
-      using _Tr = char_traits<typename iterator_traits<_BiIter>::value_type>;
-      return __detail::__char_traits_cmp_cat<_Tr>(__lhs.compare(__rhs));
-    }
-#else
-  /**
-   * @brief Tests the inequivalence of two regular expression submatches.
-   * @param __lhs First regular expression submatch.
-   * @param __rhs Second regular expression submatch.
-   * @returns true if @a __lhs  is not equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _BiIter>
-    inline bool
-    operator!=(const sub_match<_BiIter>& __lhs, const sub_match<_BiIter>& __rhs)
-    { return __lhs.compare(__rhs) != 0; }
-
-  /**
-   * @brief Tests the ordering of two regular expression submatches.
-   * @param __lhs First regular expression submatch.
-   * @param __rhs Second regular expression submatch.
-   * @returns true if @a __lhs precedes @a __rhs, false otherwise.
-   */
-  template<typename _BiIter>
-    inline bool
-    operator<(const sub_match<_BiIter>& __lhs, const sub_match<_BiIter>& __rhs)
-    { return __lhs.compare(__rhs) < 0; }
-
-  /**
-   * @brief Tests the ordering of two regular expression submatches.
-   * @param __lhs First regular expression submatch.
-   * @param __rhs Second regular expression submatch.
-   * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
-   */
-  template<typename _BiIter>
-    inline bool
-    operator<=(const sub_match<_BiIter>& __lhs, const sub_match<_BiIter>& __rhs)
-    { return __lhs.compare(__rhs) <= 0; }
-
-  /**
-   * @brief Tests the ordering of two regular expression submatches.
-   * @param __lhs First regular expression submatch.
-   * @param __rhs Second regular expression submatch.
-   * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
-   */
-  template<typename _BiIter>
-    inline bool
-    operator>=(const sub_match<_BiIter>& __lhs, const sub_match<_BiIter>& __rhs)
-    { return __lhs.compare(__rhs) >= 0; }
-
-  /**
-   * @brief Tests the ordering of two regular expression submatches.
-   * @param __lhs First regular expression submatch.
-   * @param __rhs Second regular expression submatch.
-   * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
-   */
-  template<typename _BiIter>
-    inline bool
-    operator>(const sub_match<_BiIter>& __lhs, const sub_match<_BiIter>& __rhs)
-    { return __lhs.compare(__rhs) > 0; }
-#endif // three-way comparison
-
-  /// @cond undocumented
-
-  // Alias for a basic_string that can be compared to a sub_match.
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    using __sub_match_string = basic_string<
-			      typename iterator_traits<_Bi_iter>::value_type,
-			      _Ch_traits, _Ch_alloc>;
-  /// @endcond
-
-#if ! __cpp_lib_three_way_comparison
-  /**
-   * @brief Tests the equivalence of a string and a regular expression
-   *        submatch.
-   * @param __lhs A string.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs  is equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    inline bool
-    operator==(const __sub_match_string<_Bi_iter, _Ch_traits, _Ch_alloc>& __lhs,
-	       const sub_match<_Bi_iter>& __rhs)
-    { return __rhs._M_compare(__lhs.data(), __lhs.size()) == 0; }
-
-  /**
-   * @brief Tests the inequivalence of a string and a regular expression
-   *        submatch.
-   * @param __lhs A string.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs  is not equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    inline bool
-    operator!=(const __sub_match_string<_Bi_iter, _Ch_traits, _Ch_alloc>& __lhs,
-	       const sub_match<_Bi_iter>& __rhs)
-    { return !(__lhs == __rhs); }
-
-  /**
-   * @brief Tests the ordering of a string and a regular expression submatch.
-   * @param __lhs A string.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs precedes @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    inline bool
-    operator<(const __sub_match_string<_Bi_iter, _Ch_traits, _Ch_alloc>& __lhs,
-	      const sub_match<_Bi_iter>& __rhs)
-    { return __rhs._M_compare(__lhs.data(), __lhs.size()) > 0; }
-
-  /**
-   * @brief Tests the ordering of a string and a regular expression submatch.
-   * @param __lhs A string.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    inline bool
-    operator>(const __sub_match_string<_Bi_iter, _Ch_traits, _Ch_alloc>& __lhs,
-	      const sub_match<_Bi_iter>& __rhs)
-    { return __rhs < __lhs; }
-
-  /**
-   * @brief Tests the ordering of a string and a regular expression submatch.
-   * @param __lhs A string.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    inline bool
-    operator>=(const __sub_match_string<_Bi_iter, _Ch_traits, _Ch_alloc>& __lhs,
-	       const sub_match<_Bi_iter>& __rhs)
-    { return !(__lhs < __rhs); }
-
-  /**
-   * @brief Tests the ordering of a string and a regular expression submatch.
-   * @param __lhs A string.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    inline bool
-    operator<=(const __sub_match_string<_Bi_iter, _Ch_traits, _Ch_alloc>& __lhs,
-	       const sub_match<_Bi_iter>& __rhs)
-    { return !(__rhs < __lhs); }
-#endif // three-way comparison
-
-  /**
-   * @brief Tests the equivalence of a regular expression submatch and a
-   *        string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A string.
-   * @returns true if @a __lhs is equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    inline bool
-    operator==(const sub_match<_Bi_iter>& __lhs,
-	       const __sub_match_string<_Bi_iter, _Ch_traits, _Ch_alloc>& __rhs)
-    { return __lhs._M_compare(__rhs.data(), __rhs.size()) == 0; }
-
-#if __cpp_lib_three_way_comparison
-  /**
-   * @brief Three-way comparison of a regular expression submatch and a string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A string.
-   * @returns A value indicating whether `__lhs` is less than, equal to,
-   *	      greater than, or incomparable with `__rhs`.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Alloc>
-    inline auto
-    operator<=>(const sub_match<_Bi_iter>& __lhs,
-		const __sub_match_string<_Bi_iter, _Ch_traits, _Alloc>& __rhs)
-    noexcept(__detail::__is_contiguous_iter<_Bi_iter>::value)
-    {
-      return __detail::__char_traits_cmp_cat<_Ch_traits>(
-	  __lhs._M_compare(__rhs.data(), __rhs.size()));
-    }
-#else
-  /**
-   * @brief Tests the inequivalence of a regular expression submatch and a
-   *        string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A string.
-   * @returns true if @a __lhs is not equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    inline bool
-    operator!=(const sub_match<_Bi_iter>& __lhs,
-	       const __sub_match_string<_Bi_iter, _Ch_traits, _Ch_alloc>& __rhs)
-    { return !(__lhs == __rhs); }
-
-  /**
-   * @brief Tests the ordering of a regular expression submatch and a string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A string.
-   * @returns true if @a __lhs precedes @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    inline bool
-    operator<(const sub_match<_Bi_iter>& __lhs,
-	      const __sub_match_string<_Bi_iter, _Ch_traits, _Ch_alloc>& __rhs)
-    { return __lhs._M_compare(__rhs.data(), __rhs.size()) < 0; }
-
-  /**
-   * @brief Tests the ordering of a regular expression submatch and a string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A string.
-   * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    inline bool
-    operator>(const sub_match<_Bi_iter>& __lhs,
-	      const __sub_match_string<_Bi_iter, _Ch_traits, _Ch_alloc>& __rhs)
-    { return __rhs < __lhs; }
-
-  /**
-   * @brief Tests the ordering of a regular expression submatch and a string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A string.
-   * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    inline bool
-    operator>=(const sub_match<_Bi_iter>& __lhs,
-	       const __sub_match_string<_Bi_iter, _Ch_traits, _Ch_alloc>& __rhs)
-    { return !(__lhs < __rhs); }
-
-  /**
-   * @brief Tests the ordering of a regular expression submatch and a string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A string.
-   * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter, typename _Ch_traits, typename _Ch_alloc>
-    inline bool
-    operator<=(const sub_match<_Bi_iter>& __lhs,
-	       const __sub_match_string<_Bi_iter, _Ch_traits, _Ch_alloc>& __rhs)
-    { return !(__rhs < __lhs); }
-
-  /**
-   * @brief Tests the equivalence of a C string and a regular expression
-   *        submatch.
-   * @param __lhs A null-terminated string.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs  is equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator==(typename iterator_traits<_Bi_iter>::value_type const* __lhs,
-	       const sub_match<_Bi_iter>& __rhs)
-    { return __rhs.compare(__lhs) == 0; }
-
-  /**
-   * @brief Tests the inequivalence of a C string and a regular
-   *        expression submatch.
-   * @param __lhs A null-terminated string.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs is not equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator!=(typename iterator_traits<_Bi_iter>::value_type const* __lhs,
-	       const sub_match<_Bi_iter>& __rhs)
-    { return !(__lhs == __rhs); }
-
-  /**
-   * @brief Tests the ordering of a C string and a regular expression submatch.
-   * @param __lhs A null-terminated string.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs precedes @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator<(typename iterator_traits<_Bi_iter>::value_type const* __lhs,
-	      const sub_match<_Bi_iter>& __rhs)
-    { return __rhs.compare(__lhs) > 0; }
-
-  /**
-   * @brief Tests the ordering of a C string and a regular expression submatch.
-   * @param __lhs A null-terminated string.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator>(typename iterator_traits<_Bi_iter>::value_type const* __lhs,
-	      const sub_match<_Bi_iter>& __rhs)
-    { return __rhs < __lhs; }
-
-  /**
-   * @brief Tests the ordering of a C string and a regular expression submatch.
-   * @param __lhs A null-terminated string.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator>=(typename iterator_traits<_Bi_iter>::value_type const* __lhs,
-	       const sub_match<_Bi_iter>& __rhs)
-    { return !(__lhs < __rhs); }
-
-  /**
-   * @brief Tests the ordering of a C string and a regular expression submatch.
-   * @param __lhs A null-terminated string.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator<=(typename iterator_traits<_Bi_iter>::value_type const* __lhs,
-	       const sub_match<_Bi_iter>& __rhs)
-    { return !(__rhs < __lhs); }
-#endif // three-way comparison
-
-  /**
-   * @brief Tests the equivalence of a regular expression submatch and a C
-   *        string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A null-terminated string.
-   * @returns true if @a __lhs  is equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator==(const sub_match<_Bi_iter>& __lhs,
-	       typename iterator_traits<_Bi_iter>::value_type const* __rhs)
-    { return __lhs.compare(__rhs) == 0; }
-
-#if __cpp_lib_three_way_comparison
-  /**
-   * @brief Three-way comparison of a regular expression submatch and a C
-   *	    string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A null-terminated string.
-   * @returns A value indicating whether `__lhs` is less than, equal to,
-   *	      greater than, or incomparable with `__rhs`.
-   */
-  template<typename _Bi_iter>
-    inline auto
-    operator<=>(const sub_match<_Bi_iter>& __lhs,
-		typename iterator_traits<_Bi_iter>::value_type const* __rhs)
-    noexcept(__detail::__is_contiguous_iter<_Bi_iter>::value)
-    {
-      using _Tr = char_traits<typename iterator_traits<_Bi_iter>::value_type>;
-      return __detail::__char_traits_cmp_cat<_Tr>(__lhs.compare(__rhs));
-    }
-#else
-  /**
-   * @brief Tests the inequivalence of a regular expression submatch and a
-   *        string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A null-terminated string.
-   * @returns true if @a __lhs is not equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator!=(const sub_match<_Bi_iter>& __lhs,
-	       typename iterator_traits<_Bi_iter>::value_type const* __rhs)
-    { return !(__lhs == __rhs); }
-
-  /**
-   * @brief Tests the ordering of a regular expression submatch and a C string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A null-terminated string.
-   * @returns true if @a __lhs precedes @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator<(const sub_match<_Bi_iter>& __lhs,
-	      typename iterator_traits<_Bi_iter>::value_type const* __rhs)
-    { return __lhs.compare(__rhs) < 0; }
-
-  /**
-   * @brief Tests the ordering of a regular expression submatch and a C string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A null-terminated string.
-   * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator>(const sub_match<_Bi_iter>& __lhs,
-	      typename iterator_traits<_Bi_iter>::value_type const* __rhs)
-    { return __rhs < __lhs; }
-
-  /**
-   * @brief Tests the ordering of a regular expression submatch and a C string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A null-terminated string.
-   * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator>=(const sub_match<_Bi_iter>& __lhs,
-	       typename iterator_traits<_Bi_iter>::value_type const* __rhs)
-    { return !(__lhs < __rhs); }
-
-  /**
-   * @brief Tests the ordering of a regular expression submatch and a C string.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A null-terminated string.
-   * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator<=(const sub_match<_Bi_iter>& __lhs,
-	       typename iterator_traits<_Bi_iter>::value_type const* __rhs)
-    { return !(__rhs < __lhs); }
-
-  /**
-   * @brief Tests the equivalence of a character and a regular expression
-   *        submatch.
-   * @param __lhs A character.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs is equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator==(typename iterator_traits<_Bi_iter>::value_type const& __lhs,
-	       const sub_match<_Bi_iter>& __rhs)
-    { return __rhs._M_compare(std::__addressof(__lhs), 1) == 0; }
-
-  /**
-   * @brief Tests the inequivalence of a character and a regular expression
-   *        submatch.
-   * @param __lhs A character.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs is not equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator!=(typename iterator_traits<_Bi_iter>::value_type const& __lhs,
-	       const sub_match<_Bi_iter>& __rhs)
-    { return !(__lhs == __rhs); }
-
-  /**
-   * @brief Tests the ordering of a character and a regular expression
-   *        submatch.
-   * @param __lhs A character.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs precedes @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator<(typename iterator_traits<_Bi_iter>::value_type const& __lhs,
-	      const sub_match<_Bi_iter>& __rhs)
-    { return __rhs._M_compare(std::__addressof(__lhs), 1) > 0; }
-
-  /**
-   * @brief Tests the ordering of a character and a regular expression
-   *        submatch.
-   * @param __lhs A character.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator>(typename iterator_traits<_Bi_iter>::value_type const& __lhs,
-	      const sub_match<_Bi_iter>& __rhs)
-    { return __rhs < __lhs; }
-
-  /**
-   * @brief Tests the ordering of a character and a regular expression
-   *        submatch.
-   * @param __lhs A character.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator>=(typename iterator_traits<_Bi_iter>::value_type const& __lhs,
-	       const sub_match<_Bi_iter>& __rhs)
-    { return !(__lhs < __rhs); }
-
-  /**
-   * @brief Tests the ordering of a character and a regular expression
-   *        submatch.
-   * @param __lhs A character.
-   * @param __rhs A regular expression submatch.
-   * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator<=(typename iterator_traits<_Bi_iter>::value_type const& __lhs,
-	       const sub_match<_Bi_iter>& __rhs)
-    { return !(__rhs < __lhs); }
-#endif // three-way comparison
-
-  /**
-   * @brief Tests the equivalence of a regular expression submatch and a
-   *        character.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A character.
-   * @returns true if @a __lhs  is equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator==(const sub_match<_Bi_iter>& __lhs,
-	       typename iterator_traits<_Bi_iter>::value_type const& __rhs)
-    { return __lhs._M_compare(std::__addressof(__rhs), 1) == 0; }
-
-#if __cpp_lib_three_way_comparison
-  /**
-   * @brief Three-way comparison of a regular expression submatch and a
-   *	    character.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A character.
-   * @returns A value indicating whether `__lhs` is less than, equal to,
-   *	      greater than, or incomparable with `__rhs`.
-   */
-
-  template<typename _Bi_iter>
-    inline auto
-    operator<=>(const sub_match<_Bi_iter>& __lhs,
-		typename iterator_traits<_Bi_iter>::value_type const& __rhs)
-    noexcept(__detail::__is_contiguous_iter<_Bi_iter>::value)
-    {
-      using _Tr = char_traits<typename iterator_traits<_Bi_iter>::value_type>;
-      return __detail::__char_traits_cmp_cat<_Tr>(
-	  __lhs._M_compare(std::__addressof(__rhs), 1));
-    }
-#else
-  /**
-   * @brief Tests the inequivalence of a regular expression submatch and a
-   *        character.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A character.
-   * @returns true if @a __lhs is not equivalent to @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator!=(const sub_match<_Bi_iter>& __lhs,
-	       typename iterator_traits<_Bi_iter>::value_type const& __rhs)
-    { return !(__lhs == __rhs); }
-
-  /**
-   * @brief Tests the ordering of a regular expression submatch and a
-   *        character.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A character.
-   * @returns true if @a __lhs precedes @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator<(const sub_match<_Bi_iter>& __lhs,
-	      typename iterator_traits<_Bi_iter>::value_type const& __rhs)
-    { return __lhs._M_compare(std::__addressof(__rhs), 1) < 0; }
-
-  /**
-   * @brief Tests the ordering of a regular expression submatch and a
-   *        character.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A character.
-   * @returns true if @a __lhs succeeds @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator>(const sub_match<_Bi_iter>& __lhs,
-	      typename iterator_traits<_Bi_iter>::value_type const& __rhs)
-    { return __rhs < __lhs; }
-
-  /**
-   * @brief Tests the ordering of a regular expression submatch and a
-   *        character.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A character.
-   * @returns true if @a __lhs does not precede @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator>=(const sub_match<_Bi_iter>& __lhs,
-	       typename iterator_traits<_Bi_iter>::value_type const& __rhs)
-    { return !(__lhs < __rhs); }
-
-  /**
-   * @brief Tests the ordering of a regular expression submatch and a
-   *        character.
-   * @param __lhs A regular expression submatch.
-   * @param __rhs A character.
-   * @returns true if @a __lhs does not succeed @a __rhs, false otherwise.
-   */
-  template<typename _Bi_iter>
-    inline bool
-    operator<=(const sub_match<_Bi_iter>& __lhs,
-	       typename iterator_traits<_Bi_iter>::value_type const& __rhs)
-    { return !(__rhs < __lhs); }
-#endif // three-way comparison
-
-  /**
-   * @brief Inserts a matched string into an output stream.
-   *
-   * @param __os The output stream.
-   * @param __m  A submatch string.
-   *
-   * @returns the output stream with the submatch string inserted.
-   */
-  template<typename _Ch_type, typename _Ch_traits, typename _Bi_iter>
-    inline
-    basic_ostream<_Ch_type, _Ch_traits>&
-    operator<<(basic_ostream<_Ch_type, _Ch_traits>& __os,
-	       const sub_match<_Bi_iter>& __m)
-    { return __os << __m.str(); }
-
-  /// @} relates sub_match
 
   // [7.10] Class template match_results
 
@@ -2163,6 +2101,45 @@ _GLIBCXX_BEGIN_NAMESPACE_CXX11
 
       _Bi_iter _M_begin {};
       /// @endcond
+
+      // match_results comparisons
+
+      /**
+       * @brief Compares two match_results for equality.
+       * @returns true if the two objects refer to the same match,
+       *          false otherwise.
+       *
+       * @relates match_results
+       */
+      friend inline bool
+      operator==(const match_results& __m1, const match_results& __m2)
+      {
+	if (__m1.ready() != __m2.ready())
+	  return false;
+	if (!__m1.ready())  // both are not ready
+	  return true;
+	if (__m1.empty() != __m2.empty())
+	  return false;
+	if (__m1.empty())   // both are empty
+	  return true;
+	return __m1.prefix() == __m2.prefix()
+	  && __m1.size() == __m2.size()
+	  && std::equal(__m1.begin(), __m1.end(), __m2.begin())
+	  && __m1.suffix() == __m2.suffix();
+      }
+
+#if ! __cpp_lib_three_way_comparison
+      /**
+       * @brief Compares two match_results for inequality.
+       * @returns true if the two objects do not refer to the same match,
+       *          false otherwise.
+       *
+       * @relates match_results
+       */
+      friend inline bool
+      operator!=(const match_results& __m1, const match_results& __m2)
+      { return !(__m1 == __m2); }
+#endif
     };
 
   typedef match_results<const char*>		 cmatch;
@@ -2170,49 +2147,6 @@ _GLIBCXX_BEGIN_NAMESPACE_CXX11
 #ifdef _GLIBCXX_USE_WCHAR_T
   typedef match_results<const wchar_t*>		 wcmatch;
   typedef match_results<wstring::const_iterator> wsmatch;
-#endif
-
-  // match_results comparisons
-
-  /**
-   * @brief Compares two match_results for equality.
-   * @returns true if the two objects refer to the same match,
-   *          false otherwise.
-   *
-   * @relates match_results
-   */
-  template<typename _Bi_iter, typename _Alloc>
-    inline bool
-    operator==(const match_results<_Bi_iter, _Alloc>& __m1,
-	       const match_results<_Bi_iter, _Alloc>& __m2)
-    {
-      if (__m1.ready() != __m2.ready())
-	return false;
-      if (!__m1.ready())  // both are not ready
-	return true;
-      if (__m1.empty() != __m2.empty())
-	return false;
-      if (__m1.empty())   // both are empty
-	return true;
-      return __m1.prefix() == __m2.prefix()
-	&& __m1.size() == __m2.size()
-	&& std::equal(__m1.begin(), __m1.end(), __m2.begin())
-	&& __m1.suffix() == __m2.suffix();
-    }
-
-#if ! __cpp_lib_three_way_comparison
-  /**
-   * @brief Compares two match_results for inequality.
-   * @returns true if the two objects do not refer to the same match,
-   *          false otherwise.
-   *
-   * @relates match_results
-   */
-  template<typename _Bi_iter, class _Alloc>
-    inline bool
-    operator!=(const match_results<_Bi_iter, _Alloc>& __m1,
-	       const match_results<_Bi_iter, _Alloc>& __m2)
-    { return !(__m1 == __m2); }
 #endif
 
   // [7.10.6] match_results swap

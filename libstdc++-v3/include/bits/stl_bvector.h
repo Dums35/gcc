@@ -1584,6 +1584,80 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
 #else
       void data() { }
 #endif
+
+      /**
+       *  @brief  Vector equality comparison.
+       *  @param  __x  A %vector.
+       *  @param  __y  A %vector of the same type as @a __x.
+       *  @return  True iff the size and elements of the vectors are equal.
+       *
+       *  This is an equivalence relation.  It is linear in the size of the
+       *  vectors.  Vectors are considered equivalent if their sizes are equal,
+       *  and if corresponding elements compare equal.
+       */
+      _GLIBCXX_NODISCARD _GLIBCXX20_CONSTEXPR
+      friend inline bool
+      operator==(const vector& __x, const vector& __y)
+      { return (__x.size() == __y.size()
+		&& std::equal(__x.begin(), __x.end(), __y.begin())); }
+
+#if __cpp_lib_three_way_comparison
+      /**
+       *  @brief  Vector ordering relation.
+       *  @param  __x  A `vector`.
+       *  @param  __y  A `vector` of the same type as `__x`.
+       *  @return  A value indicating whether `__x` is less than, equal to,
+       *           greater than, or incomparable with `__y`.
+       *
+       *  See `std::lexicographical_compare_three_way()` for how the determination
+       *  is made. This operator is used to synthesize relational operators like
+       *  `<` and `>=` etc.
+       */
+      [[nodiscard]] _GLIBCXX20_CONSTEXPR
+      friend inline __detail::__synth3way_t<bool>
+      operator<=>(const vector& __x, const vector& __y)
+      {
+	return std::lexicographical_compare_three_way(__x.begin(), __x.end(),
+						      __y.begin(), __y.end(),
+						      __detail::__synth3way);
+      }
+#else
+      /**
+       *  @brief  Vector ordering relation.
+       *  @param  __x  A %vector.
+       *  @param  __y  A %vector of the same type as @a __x.
+       *  @return  True iff @a __x is lexicographically less than @a __y.
+       *
+       *  This is a total ordering relation.  It is linear in the size of the
+       *  vectors.  The elements must be comparable with @c <.
+       *
+       *  See std::lexicographical_compare() for how the determination is made.
+       */
+      _GLIBCXX_NODISCARD friend inline bool
+      operator<(const vector& __x, const vector& __y)
+      { return std::lexicographical_compare(__x.begin(), __x.end(),
+					    __y.begin(), __y.end()); }
+
+      /// Based on operator==
+      _GLIBCXX_NODISCARD friend inline bool
+      operator!=(const vector& __x, const vector& __y)
+      { return !(__x == __y); }
+
+      /// Based on operator<
+      _GLIBCXX_NODISCARD friend inline bool
+      operator>(const vector& __x, const vector& __y)
+      { return __y < __x; }
+
+      /// Based on operator<
+      _GLIBCXX_NODISCARD friend inline bool
+      operator<=(const vector& __x, const vector& __y)
+      { return !(__y < __x); }
+
+      /// Based on operator<
+      _GLIBCXX_NODISCARD friend inline bool
+      operator>=(const vector& __x, const vector& __y)
+      { return !(__x < __y); }
+#endif // three-way comparison
     };
 
 _GLIBCXX_END_NAMESPACE_CONTAINER

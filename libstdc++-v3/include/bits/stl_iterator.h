@@ -422,211 +422,185 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	static _GLIBCXX17_CONSTEXPR pointer
 	_S_to_pointer(_Tp __t)
         { return __t.operator->(); }
-    };
 
-  ///@{
-  /**
-   *  @param  __x  A %reverse_iterator.
-   *  @param  __y  A %reverse_iterator.
-   *  @return  A simple bool.
-   *
-   *  Reverse iterators forward comparisons to their underlying base()
-   *  iterators.
-   *
-  */
+      ///@{
+      /**
+       *  @param  __x  A %reverse_iterator.
+       *  @param  __y  A %reverse_iterator.
+       *  @return  A simple bool.
+       *
+       *  Reverse iterators forward comparisons to their underlying base()
+       *  iterators.
+       *
+      */
 #if __cplusplus <= 201703L || ! defined __glibcxx_concepts
-  template<typename _Iterator>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator==(const reverse_iterator<_Iterator>& __x,
-	       const reverse_iterator<_Iterator>& __y)
-    { return __x.base() == __y.base(); }
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX17_CONSTEXPR bool
+      operator==(const reverse_iterator& __x, const reverse_iterator& __y)
+      { return __x.base() == __y.base(); }
 
-  template<typename _Iterator>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator<(const reverse_iterator<_Iterator>& __x,
-	      const reverse_iterator<_Iterator>& __y)
-    { return __y.base() < __x.base(); }
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX17_CONSTEXPR bool
+      operator<(const reverse_iterator& __x, const reverse_iterator& __y)
+      { return __y.base() < __x.base(); }
 
-  template<typename _Iterator>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator!=(const reverse_iterator<_Iterator>& __x,
-	       const reverse_iterator<_Iterator>& __y)
-    { return !(__x == __y); }
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX17_CONSTEXPR bool
+      operator!=(const reverse_iterator& __x, const reverse_iterator& __y)
+      { return !(__x == __y); }
 
-  template<typename _Iterator>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator>(const reverse_iterator<_Iterator>& __x,
-	      const reverse_iterator<_Iterator>& __y)
-    { return __y < __x; }
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX17_CONSTEXPR bool
+      operator>(const reverse_iterator& __x, const reverse_iterator& __y)
+      { return __y < __x; }
 
-  template<typename _Iterator>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator<=(const reverse_iterator<_Iterator>& __x,
-	       const reverse_iterator<_Iterator>& __y)
-    { return !(__y < __x); }
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX17_CONSTEXPR bool
+      operator<=(const reverse_iterator& __x, const reverse_iterator& __y)
+      { return !(__y < __x); }
 
-  template<typename _Iterator>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator>=(const reverse_iterator<_Iterator>& __x,
-	       const reverse_iterator<_Iterator>& __y)
-    { return !(__x < __y); }
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX17_CONSTEXPR bool
+      operator>=(const reverse_iterator& __x, const reverse_iterator& __y)
+      { return !(__x < __y); }
 
-  // _GLIBCXX_RESOLVE_LIB_DEFECTS
-  // DR 280. Comparison of reverse_iterator to const reverse_iterator.
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // DR 280. Comparison of reverse_iterator to const reverse_iterator.
 
-  template<typename _IteratorL, typename _IteratorR>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator==(const reverse_iterator<_IteratorL>& __x,
-	       const reverse_iterator<_IteratorR>& __y)
-    { return __x.base() == __y.base(); }
+      template<typename _IteratorR>
+	_GLIBCXX_NODISCARD
+	friend inline _GLIBCXX17_CONSTEXPR bool
+	operator==(const reverse_iterator& __x,
+		   const reverse_iterator<_IteratorR>& __y)
+	{ return __x.base() == __y.base(); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator<(const reverse_iterator<_IteratorL>& __x,
-	      const reverse_iterator<_IteratorR>& __y)
-    { return __x.base() > __y.base(); }
+      template<typename _IteratorR>
+	_GLIBCXX_NODISCARD
+	friend inline _GLIBCXX17_CONSTEXPR bool
+	operator<(const reverse_iterator& __x,
+		  const reverse_iterator<_IteratorR>& __y)
+	{ return __x.base() > __y.base(); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator!=(const reverse_iterator<_IteratorL>& __x,
-	       const reverse_iterator<_IteratorR>& __y)
-    { return __x.base() != __y.base(); }
+      template<typename _IteratorR>
+	_GLIBCXX_NODISCARD
+	friend inline _GLIBCXX17_CONSTEXPR bool
+	operator!=(const reverse_iterator& __x,
+		   const reverse_iterator<_IteratorR>& __y)
+	{ return __x.base() != __y.base(); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator>(const reverse_iterator<_IteratorL>& __x,
-	      const reverse_iterator<_IteratorR>& __y)
-    { return __x.base() < __y.base(); }
+      template<typename _IteratorR>
+	_GLIBCXX_NODISCARD
+	friend inline _GLIBCXX17_CONSTEXPR bool
+	operator>(const reverse_iterator& __x,
+		  const reverse_iterator<_IteratorR>& __y)
+	{ return __x.base() < __y.base(); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator<=(const reverse_iterator<_IteratorL>& __x,
-	       const reverse_iterator<_IteratorR>& __y)
-    { return __x.base() >= __y.base(); }
+      template<typename _IteratorR>
+	friend inline _GLIBCXX17_CONSTEXPR bool
+	operator<=(const reverse_iterator& __x,
+		   const reverse_iterator<_IteratorR>& __y)
+	{ return __x.base() >= __y.base(); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator>=(const reverse_iterator<_IteratorL>& __x,
-	       const reverse_iterator<_IteratorR>& __y)
-    { return __x.base() <= __y.base(); }
+      template<typename _IteratorR>
+	_GLIBCXX_NODISCARD
+	friend inline _GLIBCXX17_CONSTEXPR bool
+	operator>=(const reverse_iterator& __x,
+		   const reverse_iterator<_IteratorR>& __y)
+	{ return __x.base() <= __y.base(); }
 #else // C++20
-  template<typename _IteratorL, typename _IteratorR>
-    [[nodiscard]]
-    constexpr bool
-    operator==(const reverse_iterator<_IteratorL>& __x,
-	       const reverse_iterator<_IteratorR>& __y)
-    requires requires { { __x.base() == __y.base() } -> convertible_to<bool>; }
-    { return __x.base() == __y.base(); }
+      template<typename _IteratorR>
+	[[nodiscard]]
+	friend constexpr bool
+	operator==(const reverse_iterator& __x,
+		   const reverse_iterator<_IteratorR>& __y)
+	requires requires { { __x.base() == __y.base() } -> convertible_to<bool>; }
+	{ return __x.base() == __y.base(); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    [[nodiscard]]
-    constexpr bool
-    operator!=(const reverse_iterator<_IteratorL>& __x,
-	       const reverse_iterator<_IteratorR>& __y)
-    requires requires { { __x.base() != __y.base() } -> convertible_to<bool>; }
-    { return __x.base() != __y.base(); }
+      template<typename _IteratorR>
+	[[nodiscard]]
+	friend constexpr bool
+	operator!=(const reverse_iterator& __x,
+		   const reverse_iterator<_IteratorR>& __y)
+	requires requires { { __x.base() != __y.base() } -> convertible_to<bool>; }
+	{ return __x.base() != __y.base(); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    [[nodiscard]]
-    constexpr bool
-    operator<(const reverse_iterator<_IteratorL>& __x,
-	      const reverse_iterator<_IteratorR>& __y)
-    requires requires { { __x.base() > __y.base() } -> convertible_to<bool>; }
-    { return __x.base() > __y.base(); }
+      template<typename _IteratorR>
+	[[nodiscard]]
+	friend constexpr bool
+	operator<(const reverse_iterator& __x,
+		  const reverse_iterator<_IteratorR>& __y)
+	requires requires { { __x.base() > __y.base() } -> convertible_to<bool>; }
+	{ return __x.base() > __y.base(); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    [[nodiscard]]
-    constexpr bool
-    operator>(const reverse_iterator<_IteratorL>& __x,
-	      const reverse_iterator<_IteratorR>& __y)
-    requires requires { { __x.base() < __y.base() } -> convertible_to<bool>; }
-    { return __x.base() < __y.base(); }
+      template<typename _IteratorR>
+	[[nodiscard]]
+	friend constexpr bool
+	operator>(const reverse_iterator& __x,
+		  const reverse_iterator<_IteratorR>& __y)
+	requires requires { { __x.base() < __y.base() } -> convertible_to<bool>; }
+	{ return __x.base() < __y.base(); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    [[nodiscard]]
-    constexpr bool
-    operator<=(const reverse_iterator<_IteratorL>& __x,
-	       const reverse_iterator<_IteratorR>& __y)
-    requires requires { { __x.base() >= __y.base() } -> convertible_to<bool>; }
-    { return __x.base() >= __y.base(); }
+      template<typename _IteratorR>
+	[[nodiscard]]
+	friend constexpr bool
+	operator<=(const reverse_iterator& __x,
+		   const reverse_iterator<_IteratorR>& __y)
+	requires requires { { __x.base() >= __y.base() } -> convertible_to<bool>; }
+	{ return __x.base() >= __y.base(); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    [[nodiscard]]
-    constexpr bool
-    operator>=(const reverse_iterator<_IteratorL>& __x,
-	       const reverse_iterator<_IteratorR>& __y)
-    requires requires { { __x.base() <= __y.base() } -> convertible_to<bool>; }
-    { return __x.base() <= __y.base(); }
+      template<typename _IteratorR>
+	[[nodiscard]]
+	friend constexpr bool
+	operator>=(const reverse_iterator& __x,
+		   const reverse_iterator<_IteratorR>& __y)
+	requires requires { { __x.base() <= __y.base() } -> convertible_to<bool>; }
+	{ return __x.base() <= __y.base(); }
 
-  template<typename _IteratorL,
-	   three_way_comparable_with<_IteratorL> _IteratorR>
-    [[nodiscard]]
-    constexpr compare_three_way_result_t<_IteratorL, _IteratorR>
-    operator<=>(const reverse_iterator<_IteratorL>& __x,
-		const reverse_iterator<_IteratorR>& __y)
-    { return __y.base() <=> __x.base(); }
+      template<three_way_comparable_with<_Iterator> _IteratorR>
+	[[nodiscard]]
+	friend constexpr compare_three_way_result_t<_Iterator, _IteratorR>
+	operator<=>(const reverse_iterator& __x,
+		    const reverse_iterator<_IteratorR>& __y)
+	{ return __y.base() <=> __x.base(); }
 
-  // Additional, non-standard overloads to avoid ambiguities with greedy,
-  // unconstrained overloads in associated namespaces.
+      // Additional, non-standard overloads to avoid ambiguities with greedy,
+      // unconstrained overloads in associated namespaces.
 
-  template<typename _Iterator>
-    [[nodiscard]]
-    constexpr bool
-    operator==(const reverse_iterator<_Iterator>& __x,
-	       const reverse_iterator<_Iterator>& __y)
-    requires requires { { __x.base() == __y.base() } -> convertible_to<bool>; }
-    { return __x.base() == __y.base(); }
-
-  template<three_way_comparable _Iterator>
-    [[nodiscard]]
-    constexpr compare_three_way_result_t<_Iterator, _Iterator>
-    operator<=>(const reverse_iterator<_Iterator>& __x,
-		const reverse_iterator<_Iterator>& __y)
-    { return __y.base() <=> __x.base(); }
+      [[nodiscard]]
+      friend constexpr bool
+      operator==(const reverse_iterator& __x, const reverse_iterator& __y)
+      requires requires { { __x.base() == __y.base() } -> convertible_to<bool>; }
+      { return __x.base() == __y.base(); }
 #endif // C++20
   ///@}
 
 #if __cplusplus < 201103L
-  template<typename _Iterator>
-    inline typename reverse_iterator<_Iterator>::difference_type
-    operator-(const reverse_iterator<_Iterator>& __x,
-	      const reverse_iterator<_Iterator>& __y)
-    { return __y.base() - __x.base(); }
+      friend inline difference_type
+      operator-(const reverse_iterator& __x, const reverse_iterator& __y)
+      { return __y.base() - __x.base(); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    inline typename reverse_iterator<_IteratorL>::difference_type
-    operator-(const reverse_iterator<_IteratorL>& __x,
-	      const reverse_iterator<_IteratorR>& __y)
-    { return __y.base() - __x.base(); }
+      template<typename _IteratorR>
+	friend inline difference_type
+	operator-(const reverse_iterator& __x,
+		  const reverse_iterator<_IteratorR>& __y)
+	{ return __y.base() - __x.base(); }
 #else
-  // _GLIBCXX_RESOLVE_LIB_DEFECTS
-  // DR 685. reverse_iterator/move_iterator difference has invalid signatures
-  template<typename _IteratorL, typename _IteratorR>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR auto
-    operator-(const reverse_iterator<_IteratorL>& __x,
-	      const reverse_iterator<_IteratorR>& __y)
-    -> decltype(__y.base() - __x.base())
-    { return __y.base() - __x.base(); }
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // DR 685. reverse_iterator/move_iterator difference has invalid signatures
+      template<typename _IteratorR>
+	[[__nodiscard__]]
+	friend inline _GLIBCXX17_CONSTEXPR auto
+	operator-(const reverse_iterator& __x,
+		  const reverse_iterator<_IteratorR>& __y)
+	-> decltype(__y.base() - __x.base())
+	{ return __y.base() - __x.base(); }
 #endif
 
-  template<typename _Iterator>
-    _GLIBCXX_NODISCARD
-    inline _GLIBCXX17_CONSTEXPR reverse_iterator<_Iterator>
-    operator+(typename reverse_iterator<_Iterator>::difference_type __n,
-	      const reverse_iterator<_Iterator>& __x)
-    { return reverse_iterator<_Iterator>(__x.base() - __n); }
+      _GLIBCXX_NODISCARD
+      friend inline _GLIBCXX17_CONSTEXPR reverse_iterator
+      operator+(difference_type __n, const reverse_iterator& __x)
+      { return reverse_iterator(__x.base() - __n); }
+    };
 
 #if __cplusplus >= 201103L
   // Same as C++14 make_reverse_iterator but used in C++11 mode too.
@@ -1659,144 +1633,122 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	noexcept(noexcept(ranges::iter_swap(__x._M_current, __y._M_current)))
 	{ return ranges::iter_swap(__x._M_current, __y._M_current); }
 #endif // C++20
-    };
 
-  template<typename _IteratorL, typename _IteratorR>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator==(const move_iterator<_IteratorL>& __x,
-	       const move_iterator<_IteratorR>& __y)
+      template<typename _IteratorR>
+	[[__nodiscard__]]
+	friend inline _GLIBCXX17_CONSTEXPR bool
+	operator==(const move_iterator& __x,
+		   const move_iterator<_IteratorR>& __y)
 #if __cplusplus > 201703L && __glibcxx_concepts
-    requires requires { { __x.base() == __y.base() } -> convertible_to<bool>; }
+	requires requires { { __x.base() == __y.base() } -> convertible_to<bool>; }
 #endif
-    { return __x.base() == __y.base(); }
+	{ return __x.base() == __y.base(); }
 
 #if __cpp_lib_three_way_comparison
-  template<typename _IteratorL,
-	   three_way_comparable_with<_IteratorL> _IteratorR>
-    [[__nodiscard__]]
-    constexpr compare_three_way_result_t<_IteratorL, _IteratorR>
-    operator<=>(const move_iterator<_IteratorL>& __x,
-		const move_iterator<_IteratorR>& __y)
-    { return __x.base() <=> __y.base(); }
+      template<three_way_comparable_with<_Iterator> _IteratorR>
+	[[__nodiscard__]]
+	friend constexpr compare_three_way_result_t<_Iterator, _IteratorR>
+	operator<=>(const move_iterator& __x,
+		    const move_iterator<_IteratorR>& __y)
+	{ return __x.base() <=> __y.base(); }
 #else
-  template<typename _IteratorL, typename _IteratorR>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator!=(const move_iterator<_IteratorL>& __x,
-	       const move_iterator<_IteratorR>& __y)
-    { return !(__x == __y); }
+      template<typename _IteratorR>
+	[[__nodiscard__]]
+	friend inline _GLIBCXX17_CONSTEXPR bool
+	operator!=(const move_iterator& __x,
+		   const move_iterator<_IteratorR>& __y)
+	{ return !(__x == __y); }
 #endif
 
-  template<typename _IteratorL, typename _IteratorR>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator<(const move_iterator<_IteratorL>& __x,
-	      const move_iterator<_IteratorR>& __y)
+      template<typename _IteratorR>
+	[[__nodiscard__]]
+	friend inline _GLIBCXX17_CONSTEXPR bool
+	operator<(const move_iterator& __x,
+		  const move_iterator<_IteratorR>& __y)
 #if __cplusplus > 201703L && __glibcxx_concepts
-    requires requires { { __x.base() < __y.base() } -> convertible_to<bool>; }
+	requires requires { { __x.base() < __y.base() } -> convertible_to<bool>; }
 #endif
-    { return __x.base() < __y.base(); }
+	{ return __x.base() < __y.base(); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator<=(const move_iterator<_IteratorL>& __x,
-	       const move_iterator<_IteratorR>& __y)
+      template<typename _IteratorR>
+	[[__nodiscard__]]
+	friend inline _GLIBCXX17_CONSTEXPR bool
+	operator<=(const move_iterator& __x,
+		   const move_iterator<_IteratorR>& __y)
 #if __cplusplus > 201703L && __glibcxx_concepts
-    requires requires { { __y.base() < __x.base() } -> convertible_to<bool>; }
+	requires requires { { __y.base() < __x.base() } -> convertible_to<bool>; }
 #endif
-    { return !(__y < __x); }
+	{ return !(__y < __x); }
 
-  template<typename _IteratorL, typename _IteratorR>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator>(const move_iterator<_IteratorL>& __x,
-	      const move_iterator<_IteratorR>& __y)
+      template<typename _IteratorR>
+	[[__nodiscard__]]
+	friend inline _GLIBCXX17_CONSTEXPR bool
+	operator>(const move_iterator& __x,
+		  const move_iterator<_IteratorR>& __y)
 #if __cplusplus > 201703L && __glibcxx_concepts
-    requires requires { { __y.base() < __x.base() } -> convertible_to<bool>; }
+	requires requires { { __y.base() < __x.base() } -> convertible_to<bool>; }
 #endif
-    { return __y < __x; }
+	{ return __y < __x; }
 
-  template<typename _IteratorL, typename _IteratorR>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator>=(const move_iterator<_IteratorL>& __x,
-	       const move_iterator<_IteratorR>& __y)
+      template<typename _IteratorR>
+	[[__nodiscard__]]
+	friend inline _GLIBCXX17_CONSTEXPR bool
+	operator>=(const move_iterator& __x,
+		   const move_iterator<_IteratorR>& __y)
 #if __cplusplus > 201703L && __glibcxx_concepts
-    requires requires { { __x.base() < __y.base() } -> convertible_to<bool>; }
+	requires requires { { __x.base() < __y.base() } -> convertible_to<bool>; }
 #endif
-    { return !(__x < __y); }
+	{ return !(__x < __y); }
 
-  // Note: See __normal_iterator operators note from Gaby to understand
-  // why we have these extra overloads for some move_iterator operators.
+      // Note: See __normal_iterator operators note from Gaby to understand
+      // why we have these extra overloads for some move_iterator operators.
 
-  template<typename _Iterator>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator==(const move_iterator<_Iterator>& __x,
-	       const move_iterator<_Iterator>& __y)
-    { return __x.base() == __y.base(); }
+      [[__nodiscard__]]
+      friend inline _GLIBCXX17_CONSTEXPR bool
+      operator==(const move_iterator& __x, const move_iterator& __y)
+      { return __x.base() == __y.base(); }
 
-#if __cpp_lib_three_way_comparison
-  template<three_way_comparable _Iterator>
-    [[__nodiscard__]]
-    constexpr compare_three_way_result_t<_Iterator>
-    operator<=>(const move_iterator<_Iterator>& __x,
-		const move_iterator<_Iterator>& __y)
-    { return __x.base() <=> __y.base(); }
-#else
-  template<typename _Iterator>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator!=(const move_iterator<_Iterator>& __x,
-	       const move_iterator<_Iterator>& __y)
-    { return !(__x == __y); }
+#if !__cpp_lib_three_way_comparison
+      [[__nodiscard__]]
+      friend inline _GLIBCXX17_CONSTEXPR bool
+      operator!=(const move_iterator& __x, const move_iterator& __y)
+      { return !(__x == __y); }
 
-  template<typename _Iterator>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator<(const move_iterator<_Iterator>& __x,
-	      const move_iterator<_Iterator>& __y)
-    { return __x.base() < __y.base(); }
+      [[__nodiscard__]]
+      friend inline _GLIBCXX17_CONSTEXPR bool
+      operator<(const move_iterator& __x, const move_iterator& __y)
+      { return __x.base() < __y.base(); }
 
-  template<typename _Iterator>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator<=(const move_iterator<_Iterator>& __x,
-	       const move_iterator<_Iterator>& __y)
-    { return !(__y < __x); }
+      [[__nodiscard__]]
+      friend inline _GLIBCXX17_CONSTEXPR bool
+      operator<=(const move_iterator& __x, const move_iterator& __y)
+      { return !(__y < __x); }
 
-  template<typename _Iterator>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator>(const move_iterator<_Iterator>& __x,
-	      const move_iterator<_Iterator>& __y)
-    { return __y < __x; }
+      [[__nodiscard__]]
+      friend inline _GLIBCXX17_CONSTEXPR bool
+      operator>(const move_iterator& __x, const move_iterator& __y)
+      { return __y < __x; }
 
-  template<typename _Iterator>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR bool
-    operator>=(const move_iterator<_Iterator>& __x,
-	       const move_iterator<_Iterator>& __y)
-    { return !(__x < __y); }
+      [[__nodiscard__]]
+      friend inline _GLIBCXX17_CONSTEXPR bool
+      operator>=(const move_iterator& __x, const move_iterator& __y)
+      { return !(__x < __y); }
 #endif // ! C++20
 
-  // DR 685.
-  template<typename _IteratorL, typename _IteratorR>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR auto
-    operator-(const move_iterator<_IteratorL>& __x,
-	      const move_iterator<_IteratorR>& __y)
-    -> decltype(__x.base() - __y.base())
-    { return __x.base() - __y.base(); }
+      // DR 685.
+      template<typename _IteratorR>
+	[[__nodiscard__]]
+	friend inline _GLIBCXX17_CONSTEXPR auto
+	operator-(const move_iterator& __x,
+		  const move_iterator<_IteratorR>& __y)
+	-> decltype(__x.base() - __y.base())
+	{ return __x.base() - __y.base(); }
 
-  template<typename _Iterator>
-    [[__nodiscard__]]
-    inline _GLIBCXX17_CONSTEXPR move_iterator<_Iterator>
-    operator+(typename move_iterator<_Iterator>::difference_type __n,
-	      const move_iterator<_Iterator>& __x)
-    { return __x + __n; }
+      [[__nodiscard__]]
+      friend inline _GLIBCXX17_CONSTEXPR move_iterator
+      operator+(difference_type __n, const move_iterator& __x)
+      { return __x + __n; }
+    };
 
   template<typename _Iterator>
     [[__nodiscard__]]
