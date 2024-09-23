@@ -84,6 +84,26 @@ test3()
     VERIFY(array[i].j == i % 2);
 }
 
+struct NotConstLess
+{
+  bool
+  operator()(S& s1, S& s2)
+  { return s1.i < s2.i; }
+};
+
+void
+test4()
+{
+#if __cplusplus >= 201103L
+  NotConstLess less;
+  S array[] = { -1, -2, 1, 2, -3 ,-5 ,3 , -4, 5, 4 };
+  test_container<S, random_access_iterator_wrapper> con(array,array + 10);
+  stable_sort(con.begin(), con.end(), less);
+  for(int i = 0; i < 10; ++i)
+    VERIFY(array[i].j == i % 2);
+#endif
+}
+
 int 
 main()
 {
@@ -91,13 +111,17 @@ main()
   test2();
 
   test3();
+  test4();
 
   __gnu_test::set_new_limit(sizeof(S) * 5);
   test3();
+  test4();
 
   __gnu_test::set_new_limit(sizeof(S));
   test3();
+  test4();
 
   __gnu_test::set_new_limit(0);
   test3();
+  test4();
 }
