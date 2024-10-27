@@ -930,17 +930,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	_M_insert_unique(_Kt&&, _Arg&&, _NodeGenerator&);
 
       template<typename _Kt>
-	key_type
+	static __conditional_t<std::is_same<__decay_t<_Kt>,
+					    __decay_t<key_type>>::value,
+			       _Kt&&, key_type>
 	_S_forward_key(_Kt&& __k)
 	{ return std::forward<_Kt>(__k); }
-
-      static const key_type&
-      _S_forward_key(const key_type& __k)
-      { return __k; }
-
-      static key_type&&
-      _S_forward_key(key_type&& __k)
-      { return std::move(__k); }
 
       template<typename _Arg, typename _NodeGenerator>
 	std::pair<iterator, bool>

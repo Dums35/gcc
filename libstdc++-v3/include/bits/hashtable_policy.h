@@ -142,6 +142,11 @@ namespace __detail
 	{ return std::move(__x); }
 
       template<typename _Kt, typename _Val>
+	constexpr std::pair<_Kt, _Val>&
+	operator()(std::pair<_Kt, _Val>& __x) const noexcept
+	{ return __x; }
+
+      template<typename _Kt, typename _Val>
 	constexpr const std::pair<_Kt, _Val>&
 	operator()(const std::pair<_Kt, _Val>& __x) const noexcept
 	{ return __x; }
